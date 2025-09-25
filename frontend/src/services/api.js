@@ -1,9 +1,9 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
-import { useAuthStore } from '../store/useAuthStore'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
+// Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -12,9 +12,10 @@ const apiClient = axios.create({
   },
 })
 
+// Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token
+    const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -25,6 +26,7 @@ apiClient.interceptors.request.use(
   }
 )
 
+// Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => {
     return response.data
@@ -32,14 +34,32 @@ apiClient.interceptors.response.use(
   (error) => {
     const message = error.response?.data?.message || 'Something went wrong'
     
+    // Handle different error statuses
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout()
-      toast.error('Session expired. Please login again.')
-      return Promise.reject(error)
+      // Clear auth data on unauthorized
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      
+      // Only show login message if not already on auth flow
+      if (!window.location.pathname.includes('/auth')) {
+        toast.error('Session expired. Please login again.')
+        // You might want to redirect to login page here
+        // window.location.href = '/login'
+      }
+      
+      return Promise.reject({
+        ...error,
+        message: 'Please log in to continue',
+        status: 401
+      })
     }
     
     if (error.response?.status === 429) {
       toast.error('Too many requests. Please wait and try again.')
+    }
+    
+    if (error.response?.status >= 500) {
+      toast.error('Server error. Please try again later.')
     }
     
     if (!error.response) {
