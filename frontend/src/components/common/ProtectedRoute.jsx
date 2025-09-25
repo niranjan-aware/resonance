@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import { useAuthStore } from '../../context/AuthContext'
+import { useAuthStore } from '../../store/useAuthStore'
 import Loading from './Loading'
 
 export default function ProtectedRoute({ children, requireAdmin = false }) {

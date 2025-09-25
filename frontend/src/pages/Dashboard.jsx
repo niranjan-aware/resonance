@@ -14,7 +14,7 @@ import {
   MapPin,
   Phone
 } from 'lucide-react'
-import { useAuthStore } from '../context/AuthContext'
+import { useAuthStore } from '../store/useAuthStore'
 import { bookingAPI } from '../services/booking'
 import Button from '../components/common/Button'
 import Loading from '../components/common/Loading'

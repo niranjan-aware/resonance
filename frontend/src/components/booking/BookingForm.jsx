@@ -22,7 +22,7 @@ import Input from '../common/Input'
 import StepIndicator from './StepIndicator'
 import StudioSelector from './StudioSelector'
 import TimeSlots from './TimeSlots'
-import { useAuthStore } from '../../context/AuthContext'
+import { useAuthStore } from '../../store/useAuthStore'
 import { bookingAPI, studioAPI } from '../../services/booking'
 
 const sessionTypes = [

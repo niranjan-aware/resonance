@@ -13,7 +13,7 @@ import {
   X,
   LogOut
 } from 'lucide-react'
-import { useAuthStore } from '../../context/AuthContext'
+import { useAuthStore } from '../../store/useAuthStore'
 import Button from '../common/Button'
 
 const userMenuItems = [

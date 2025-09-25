@@ -1,369 +1,390 @@
+import { createContext, useContext, useReducer, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { safeApiCall } from '../utils/apiUtils'
 
-// API Error Handler Class
-export class APIError extends Error {
-  constructor(message, status, data = null) {
-    super(message)
-    this.name = 'APIError'
-    this.status = status
-    this.data = data
-  }
+// Auth actions
+const AUTH_ACTIONS = {
+  SET_LOADING: 'SET_LOADING',
+  SET_USER: 'SET_USER',
+  SET_ERROR: 'SET_ERROR',
+  LOGOUT: 'LOGOUT',
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  SET_SHOW_AUTH_MODAL: 'SET_SHOW_AUTH_MODAL',
+  SET_AUTH_STEP: 'SET_AUTH_STEP'
 }
 
-// Validation helpers
-export const validateEmail = (email) => {
-  const emailRegex = /^\S+@\S+\.\S+$/
-  return emailRegex.test(email)
+// Initial state
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+  showAuthModal: false,
+  authStep: 'phone' // 'phone' or 'otp'
 }
 
-export const validatePhone = (phone) => {
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/
-  return phoneRegex.test(phone)
-}
-
-export const validatePassword = (password) => {
-  return password && password.length >= 6
-}
-
-export const validateOTP = (otp) => {
-  const otpRegex = /^\d{6}$/
-  return otpRegex.test(otp)
-}
-
-// Request retry utility
-export const retryRequest = async (requestFn, maxRetries = 3, delay = 1000) => {
-  let lastError
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await requestFn()
-      return result
-    } catch (error) {
-      lastError = error
-      
-      // Don't retry on client errors (4xx) except for 408, 429
-      if (error.status >= 400 && error.status < 500 && 
-          error.status !== 408 && error.status !== 429) {
-        throw error
+// Auth reducer
+const authReducer = (state, action) => {
+  switch (action.type) {
+    case AUTH_ACTIONS.SET_LOADING:
+      return {
+        ...state,
+        isLoading: action.payload
       }
-      
-      // Don't retry on the last attempt
-      if (attempt === maxRetries) {
-        break
-      }
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay * attempt))
-    }
-  }
-
-  throw lastError
-}
-
-// Format API errors for user display
-export const formatError = (error) => {
-  if (error.isNetworkError) {
-    return 'Connection failed. Please check your internet connection and try again.'
-  }
-
-  if (error.status === 401) {
-    return 'Please log in to continue.'
-  }
-
-  if (error.status === 403) {
-    return 'You don\'t have permission to perform this action.'
-  }
-
-  if (error.status === 404) {
-    return 'The requested resource was not found.'
-  }
-
-  if (error.status === 422) {
-    return error.validationErrors 
-      ? Object.values(error.validationErrors).join(', ')
-      : 'Please check your input and try again.'
-  }
-
-  if (error.status >= 500) {
-    return 'Server error. Please try again later.'
-  }
-
-  return error.message || 'Something went wrong. Please try again.'
-}
-
-// Safe API call wrapper
-export const safeApiCall = async (apiCall, options = {}) => {
-  const { 
-    showErrorToast = true, 
-    showSuccessToast = false,
-    successMessage = '',
-    retries = 0,
-    onError,
-    onSuccess 
-  } = options
-
-  try {
-    const result = retries > 0 
-      ? await retryRequest(apiCall, retries)
-      : await apiCall()
-
-    if (showSuccessToast && successMessage) {
-      toast.success(successMessage)
-    }
-
-    if (onSuccess) {
-      onSuccess(result)
-    }
-
-    return { data: result, error: null }
-  } catch (error) {
-    const formattedError = formatError(error)
     
-    if (showErrorToast) {
-      toast.error(formattedError)
-    }
-
-    if (onError) {
-      onError(error)
-    }
-
-    return { data: null, error: formattedError }
-  }
-}
-
-// Parse query parameters
-export const parseQueryParams = (params) => {
-  const filtered = Object.entries(params)
-    .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-    .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
-  
-  return new URLSearchParams(filtered).toString()
-}
-
-// Format date for API calls
-export const formatDateForAPI = (date) => {
-  if (!date) return ''
-  
-  if (typeof date === 'string') {
-    return date
-  }
-  
-  return date.toISOString().split('T')[0]
-}
-
-// Debounce function for API calls
-export const debounce = (func, wait) => {
-  let timeout
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
-}
-
-// Cache utility for API responses
-class APICache {
-  constructor(maxSize = 100, ttl = 5 * 60 * 1000) { // 5 minutes default TTL
-    this.cache = new Map()
-    this.maxSize = maxSize
-    this.ttl = ttl
-  }
-
-  generateKey(url, params = {}) {
-    return `${url}_${JSON.stringify(params)}`
-  }
-
-  get(key) {
-    const cached = this.cache.get(key)
-    if (!cached) return null
-
-    if (Date.now() > cached.expiry) {
-      this.cache.delete(key)
-      return null
-    }
-
-    return cached.data
-  }
-
-  set(key, data) {
-    if (this.cache.size >= this.maxSize) {
-      // Remove oldest entry
-      const firstKey = this.cache.keys().next().value
-      this.cache.delete(firstKey)
-    }
-
-    this.cache.set(key, {
-      data,
-      expiry: Date.now() + this.ttl
-    })
-  }
-
-  clear() {
-    this.cache.clear()
-  }
-
-  delete(key) {
-    this.cache.delete(key)
-  }
-}
-
-export const apiCache = new APICache()
-
-// Cached API call wrapper
-export const cachedApiCall = async (key, apiCall, useCache = true) => {
-  if (useCache) {
-    const cached = apiCache.get(key)
-    if (cached) {
-      return cached
-    }
-  }
-
-  const result = await apiCall()
-  
-  if (useCache && result) {
-    apiCache.set(key, result)
-  }
-
-  return result
-}
-
-// Upload progress handler
-export const createUploadHandler = (onProgress, onSuccess, onError) => {
-  return {
-    onUploadProgress: (progressEvent) => {
-      if (progressEvent.total) {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        )
-        onProgress?.(percentCompleted)
+    case AUTH_ACTIONS.SET_USER:
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: !!action.payload,
+        isLoading: false,
+        error: null
       }
-    },
-    onSuccess: (response) => {
-      onSuccess?.(response)
-      toast.success('Upload completed successfully!')
-    },
-    onError: (error) => {
-      onError?.(error)
-      toast.error('Upload failed. Please try again.')
-    }
+    
+    case AUTH_ACTIONS.SET_ERROR:
+      return {
+        ...state,
+        error: action.payload,
+        isLoading: false
+      }
+    
+    case AUTH_ACTIONS.LOGOUT:
+      return {
+        ...initialState,
+        isLoading: false
+      }
+    
+    case AUTH_ACTIONS.CLEAR_ERROR:
+      return {
+        ...state,
+        error: null
+      }
+
+    case AUTH_ACTIONS.SET_SHOW_AUTH_MODAL:
+      return {
+        ...state,
+        showAuthModal: action.payload
+      }
+
+    case AUTH_ACTIONS.SET_AUTH_STEP:
+      return {
+        ...state,
+        authStep: action.payload
+      }
+    
+    default:
+      return state
   }
 }
 
-// Batch API calls
-export const batchApiCalls = async (apiCalls, options = {}) => {
-  const { concurrency = 3, delay = 100 } = options
-  const results = []
-  const errors = []
+// Create context
+const AuthContext = createContext()
 
-  for (let i = 0; i < apiCalls.length; i += concurrency) {
-    const batch = apiCalls.slice(i, i + concurrency)
-    
-    const batchPromises = batch.map(async (apiCall, index) => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, delay * index))
-        const result = await apiCall()
-        return { index: i + index, data: result, error: null }
-      } catch (error) {
-        return { index: i + index, data: null, error }
-      }
-    })
+// Auth provider component
+export const AuthProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(authReducer, initialState)
 
-    const batchResults = await Promise.allSettled(batchPromises)
-    
-    batchResults.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        const { index, data, error } = result.value
-        if (error) {
-          errors.push({ index, error })
-        } else {
-          results.push({ index, data })
+  // Helper actions
+  const setLoading = (loading) => {
+    dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: loading })
+  }
+
+  const setUser = (user) => {
+    dispatch({ type: AUTH_ACTIONS.SET_USER, payload: user })
+  }
+
+  const setError = (error) => {
+    dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: error })
+  }
+
+  const clearError = () => {
+    dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR })
+  }
+
+  const setShowAuthModal = (show) => {
+    dispatch({ type: AUTH_ACTIONS.SET_SHOW_AUTH_MODAL, payload: show })
+  }
+
+  const setAuthStep = (step) => {
+    dispatch({ type: AUTH_ACTIONS.SET_AUTH_STEP, payload: step })
+  }
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    dispatch({ type: AUTH_ACTIONS.LOGOUT })
+    toast.success('Logged out successfully')
+  }
+
+  // API call functions
+  const sendOTP = async (phone) => {
+    const { error } = await safeApiCall(
+      async () => {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ phone })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to send OTP')
         }
-      } else {
-        errors.push({ index: i, error: result.reason })
+
+        return await response.json()
+      },
+      {
+        showErrorToast: true,
+        onError: (error) => setError(error.message),
+        onSuccess: () => {
+          setAuthStep('otp')
+          toast.success('OTP sent successfully')
+        }
       }
-    })
+    )
+
+    if (error) {
+      throw new Error(error)
+    }
   }
 
-  return { results, errors }
-}
+  const verifyOTP = async ({ phone, otp, name, email }) => {
+    const { data, error } = await safeApiCall(
+      async () => {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ phone, otp, name, email })
+        })
 
-// Request timeout wrapper
-export const withTimeout = (promise, timeoutMs = 30000) => {
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(new APIError('Request timeout', 408))
-    }, timeoutMs)
-  })
+        if (!response.ok) {
+          throw new Error('Invalid OTP')
+        }
 
-  return Promise.race([promise, timeoutPromise])
-}
+        return await response.json()
+      },
+      {
+        showErrorToast: true,
+        showSuccessToast: true,
+        successMessage: 'Welcome to Resonance!',
+        onError: (error) => setError(error.message)
+      }
+    )
 
-// Health check utility
-export const checkAPIHealth = async (apiClient) => {
-  try {
-    const startTime = Date.now()
-    await apiClient.get('/health')
-    const responseTime = Date.now() - startTime
-    
-    return {
-      status: 'healthy',
-      responseTime,
-      timestamp: new Date().toISOString()
+    if (error) {
+      throw new Error(error)
     }
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      error: error.message,
-      timestamp: new Date().toISOString()
+
+    // Store tokens and user data
+    if (data.token) {
+      localStorage.setItem('token', data.token)
+    }
+    if (data.refreshToken) {
+      localStorage.setItem('refreshToken', data.refreshToken)
+    }
+
+    setUser(data.user)
+  }
+
+  const login = async ({ email, password }) => {
+    const { data, error } = await safeApiCall(
+      async () => {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Login failed')
+        }
+
+        return await response.json()
+      },
+      {
+        showErrorToast: true,
+        showSuccessToast: true,
+        successMessage: 'Welcome back!',
+        onError: (error) => setError(error.message)
+      }
+    )
+
+    if (error) {
+      throw new Error(error)
+    }
+
+    // Store tokens and user data
+    if (data.token) {
+      localStorage.setItem('token', data.token)
+    }
+    if (data.refreshToken) {
+      localStorage.setItem('refreshToken', data.refreshToken)
+    }
+
+    setUser(data.user)
+  }
+
+  const register = async ({ name, email, phone, password }) => {
+    const { data, error } = await safeApiCall(
+      async () => {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, email, phone, password })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Registration failed')
+        }
+
+        return await response.json()
+      },
+      {
+        showErrorToast: true,
+        showSuccessToast: true,
+        successMessage: 'Account created successfully!',
+        onError: (error) => setError(error.message)
+      }
+    )
+
+    if (error) {
+      throw new Error(error)
+    }
+
+    // Store tokens and user data
+    if (data.token) {
+      localStorage.setItem('token', data.token)
+    }
+    if (data.refreshToken) {
+      localStorage.setItem('refreshToken', data.refreshToken)
+    }
+
+    setUser(data.user)
+  }
+
+  const resendOTP = async (phone) => {
+    const { error } = await safeApiCall(
+      async () => {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/auth/resend-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ phone })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to resend OTP')
+        }
+
+        return await response.json()
+      },
+      {
+        showErrorToast: true,
+        onError: (error) => setError(error.message),
+        onSuccess: () => {
+          toast.success('OTP sent successfully')
+        }
+      }
+    )
+
+    if (error) {
+      throw new Error(error)
     }
   }
+
+  // Check if user is authenticated on app load
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      const { data } = await safeApiCall(
+        async () => {
+          // Replace with your actual API endpoint
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (!response.ok) {
+            throw new Error('Token invalid')
+          }
+
+          return await response.json()
+        },
+        {
+          showErrorToast: false,
+          onError: () => {
+            localStorage.removeItem('token')
+            localStorage.removeItem('refreshToken')
+            setLoading(false)
+          }
+        }
+      )
+
+      if (data) {
+        setUser(data)
+      }
+    }
+
+    checkAuth()
+  }, [])
+
+  const value = {
+    ...state,
+    // Auth actions
+    login,
+    register,
+    logout,
+    sendOTP,
+    verifyOTP,
+    resendOTP,
+    // UI actions
+    setShowAuthModal,
+    setAuthStep,
+    setUser,
+    setError,
+    clearError
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
-// Local storage utilities for offline support
-export const offlineStorage = {
-  set: (key, data) => {
-    try {
-      localStorage.setItem(`offline_${key}`, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }))
-    } catch (error) {
-      console.warn('Failed to save to offline storage:', error)
-    }
-  },
-
-  get: (key, maxAge = 24 * 60 * 60 * 1000) => { // 24 hours default
-    try {
-      const item = localStorage.getItem(`offline_${key}`)
-      if (!item) return null
-
-      const { data, timestamp } = JSON.parse(item)
-      
-      if (Date.now() - timestamp > maxAge) {
-        localStorage.removeItem(`offline_${key}`)
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.warn('Failed to read from offline storage:', error)
-      return null
-    }
-  },
-
-  remove: (key) => {
-    localStorage.removeItem(`offline_${key}`)
-  },
-
-  clear: () => {
-    const keys = Object.keys(localStorage)
-    keys.forEach(key => {
-      if (key.startsWith('offline_')) {
-        localStorage.removeItem(key)
-      }
-    })
+// Custom hook - this is your useAuthStore equivalent
+export const useAuthStore = () => {
+  const context = useContext(AuthContext)
+  
+  if (!context) {
+    throw new Error('useAuthStore must be used within an AuthProvider')
   }
+  
+  return context
+}
+
+// Alternative hook name for consistency
+export const useAuth = () => {
+  return useAuthStore()
 }

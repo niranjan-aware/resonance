@@ -12,7 +12,7 @@ import {
   LogOut,
   Settings
 } from 'lucide-react'
-import { useAuthStore } from '../../context/AuthContext'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const navItems = [
   { name: 'Home', path: '/' },
