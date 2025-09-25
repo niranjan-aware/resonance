@@ -10,12 +10,11 @@ import {
   Star,
   Plus,
   Filter,
-  Search,
   MapPin,
   Phone
 } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
-import { bookingAPI } from '../services/booking'
+import { useBookingStore } from '../store/useBookingStore'
 import Button from '../components/common/Button'
 import Loading from '../components/common/Loading'
 import { format } from 'date-fns'
@@ -28,53 +27,48 @@ const statusColors = {
 }
 
 export default function Dashboard() {
-  const [bookings, setBookings] = useState([])
-  const [stats, setStats] = useState({})
-  const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
   const { user } = useAuthStore()
+  const { bookings, isLoading, fetchUserBookings } = useBookingStore()
+  const [filter, setFilter] = useState('all')
+  const [stats, setStats] = useState({})
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [filter])
-
-  const fetchDashboardData = async () => {
-    setIsLoading(true)
-    try {
+    if (user) {
       const params = filter !== 'all' ? { status: filter } : {}
-      const response = await bookingAPI.getUserBookings(params)
-      setBookings(response.bookings)
-      
+      fetchUserBookings(params)
+    }
+  }, [filter, user, fetchUserBookings])
+
+  useEffect(() => {
+    if (bookings.length > 0) {
       // Calculate stats
-      const totalBookings = response.bookings.length
-      const confirmedBookings = response.bookings.filter(b => b.status === 'confirmed').length
-      const totalSpent = response.bookings
+      const totalBookings = bookings.length
+      const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
+      const totalSpent = bookings
         .filter(b => b.status !== 'cancelled')
-        .reduce((sum, b) => sum + b.pricing.totalAmount, 0)
+        .reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0)
       
       setStats({
         totalBookings,
         confirmedBookings,
         totalSpent,
-        favoriteStudio: 'Studio A' // This would come from backend
+        favoriteStudio: 'Studio A' // This would come from backend analysis
       })
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [bookings])
 
-  const upcomingBookings = bookings.filter(booking => 
-    booking.isUpcoming && ['confirmed', 'checked-in'].includes(booking.status)
-  )
+  const upcomingBookings = bookings.filter(booking => {
+    const bookingDate = new Date(booking.date)
+    const now = new Date()
+    return bookingDate >= now && ['confirmed', 'checked-in'].includes(booking.status)
+  })
 
   const recentBookings = bookings.slice(0, 5)
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg pt-20">
-        <div className="max-width-container py-12">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Loading size="lg" text="Loading your dashboard..." />
         </div>
       </div>
@@ -82,20 +76,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="py-8"
       >
-        <div className="max-width-container">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Welcome Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Welcome back, {user?.name?.split(' ')[0]}! 🎵
             </h1>
-            <p className="text-light-text-muted dark:text-dark-text-muted">
+            <p className="text-gray-600 dark:text-gray-400">
               Here's what's happening with your bookings
             </p>
           </div>
@@ -106,17 +100,17 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="glass rounded-2xl p-6"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-light-text-muted dark:text-dark-text-muted text-sm">Total Bookings</p>
-                  <p className="text-2xl font-bold text-light-text dark:text-dark-text">
-                    {stats.totalBookings}
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.totalBookings || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-light-primary/10 dark:bg-dark-primary/10 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-light-primary dark:text-dark-primary" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </motion.div>
@@ -125,13 +119,13 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="glass rounded-2xl p-6"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-light-text-muted dark:text-dark-text-muted text-sm">Confirmed</p>
-                  <p className="text-2xl font-bold text-light-text dark:text-dark-text">
-                    {stats.confirmedBookings}
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Confirmed</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.confirmedBookings || 0}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center">
@@ -144,17 +138,17 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="glass rounded-2xl p-6"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-light-text-muted dark:text-dark-text-muted text-sm">Total Spent</p>
-                  <p className="text-2xl font-bold text-light-text dark:text-dark-text">
-                    ₹{stats.totalSpent?.toLocaleString()}
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Spent</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    ₹{stats.totalSpent?.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-light-accent/10 dark:bg-dark-accent/10 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-light-accent dark:text-dark-accent" />
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </motion.div>
@@ -163,17 +157,17 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="glass rounded-2xl p-6"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-light-text-muted dark:text-dark-text-muted text-sm">Favorite Studio</p>
-                  <p className="text-lg font-bold text-light-text dark:text-dark-text">
-                    {stats.favoriteStudio}
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Favorite Studio</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {stats.favoriteStudio || 'N/A'}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center">
-                  <Star className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-xl flex items-center justify-center">
+                  <Star className="w-6 h-6 text-yellow-600" />
                 </div>
               </div>
             </motion.div>
@@ -188,10 +182,10 @@ export default function Dashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="glass rounded-2xl p-6"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                       Upcoming Sessions
                     </h2>
                     <Link to="/calendar">
@@ -205,18 +199,18 @@ export default function Dashboard() {
                     {upcomingBookings.map((booking) => (
                       <div
                         key={booking._id}
-                        className="p-4 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl"
+                        className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-medium text-light-text dark:text-dark-text">
-                              {booking.studio.name}
+                            <h3 className="font-medium text-gray-900 dark:text-white">
+                              {booking.studio?.name || 'Studio'}
                             </h3>
-                            <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                              {format(new Date(booking.date), 'MMM d, yyyy')} • {booking.timeSlot.startTime} - {booking.timeSlot.endTime}
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {format(new Date(booking.date), 'MMM d, yyyy')} • {booking.timeSlot?.startTime} - {booking.timeSlot?.endTime}
                             </p>
-                            <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                              {booking.sessionType.replace('-', ' ')}
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {booking.sessionType?.replace('-', ' ') || 'Session'}
                             </p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[booking.status]}`}>
@@ -234,10 +228,10 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     Recent Bookings
                   </h2>
                   
@@ -245,7 +239,7 @@ export default function Dashboard() {
                     <select
                       value={filter}
                       onChange={(e) => setFilter(e.target.value)}
-                      className="px-3 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg text-sm text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary"
+                      className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="all">All Status</option>
                       <option value="pending">Pending</option>
@@ -262,19 +256,19 @@ export default function Dashboard() {
                       <motion.div
                         key={booking._id}
                         whileHover={{ scale: 1.01 }}
-                        className="p-4 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl border border-light-border dark:border-dark-border hover:border-light-primary dark:hover:border-dark-primary transition-colors cursor-pointer"
+                        className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors cursor-pointer"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
                               <Music className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                              <h3 className="font-medium text-light-text dark:text-dark-text">
-                                {booking.studio.name}
+                              <h3 className="font-medium text-gray-900 dark:text-white">
+                                {booking.studio?.name || 'Studio'}
                               </h3>
-                              <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                                {booking.bookingId}
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {booking.bookingId || booking._id}
                               </p>
                             </div>
                           </div>
@@ -286,27 +280,27 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-light-text-muted dark:text-dark-text-muted">Date:</span>
-                            <span className="ml-2 font-medium text-light-text dark:text-dark-text">
+                            <span className="text-gray-600 dark:text-gray-400">Date:</span>
+                            <span className="ml-2 font-medium text-gray-900 dark:text-white">
                               {format(new Date(booking.date), 'MMM d, yyyy')}
                             </span>
                           </div>
                           <div>
-                            <span className="text-light-text-muted dark:text-dark-text-muted">Time:</span>
-                            <span className="ml-2 font-medium text-light-text dark:text-dark-text">
-                              {booking.timeSlot.startTime} - {booking.timeSlot.endTime}
+                            <span className="text-gray-600 dark:text-gray-400">Time:</span>
+                            <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                              {booking.timeSlot?.startTime} - {booking.timeSlot?.endTime}
                             </span>
                           </div>
                           <div>
-                            <span className="text-light-text-muted dark:text-dark-text-muted">Session:</span>
-                            <span className="ml-2 font-medium text-light-text dark:text-dark-text">
-                              {booking.sessionType.replace('-', ' ')}
+                            <span className="text-gray-600 dark:text-gray-400">Session:</span>
+                            <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                              {booking.sessionType?.replace('-', ' ') || 'Session'}
                             </span>
                           </div>
                           <div>
-                            <span className="text-light-text-muted dark:text-dark-text-muted">Amount:</span>
-                            <span className="ml-2 font-medium text-light-primary dark:text-dark-primary">
-                              ₹{booking.pricing.totalAmount}
+                            <span className="text-gray-600 dark:text-gray-400">Amount:</span>
+                            <span className="ml-2 font-medium text-blue-600 dark:text-blue-400">
+                              ₹{booking.pricing?.totalAmount || 0}
                             </span>
                           </div>
                         </div>
@@ -315,11 +309,11 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Music className="w-16 h-16 text-light-text-muted dark:text-dark-text-muted mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-light-text dark:text-dark-text mb-2">
+                    <Music className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                       No bookings yet
                     </h3>
-                    <p className="text-light-text-muted dark:text-dark-text-muted mb-6">
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
                       Start by booking your first studio session
                     </p>
                     <Link to="/booking">
@@ -340,9 +334,9 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Quick Actions
                 </h3>
                 
@@ -375,18 +369,18 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Contact Info
                 </h3>
                 
                 <div className="space-y-4 text-sm">
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-light-primary dark:text-dark-primary mt-0.5" />
+                    <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5" />
                     <div>
-                      <p className="font-medium text-light-text dark:text-dark-text">Visit Us</p>
-                      <p className="text-light-text-muted dark:text-dark-text-muted">
+                      <p className="font-medium text-gray-900 dark:text-white">Visit Us</p>
+                      <p className="text-gray-600 dark:text-gray-400">
                         Sinhgad Road, Pune<br />
                         Maharashtra 411041
                       </p>
@@ -394,17 +388,17 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-light-primary dark:text-dark-primary" />
+                    <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <div>
-                      <p className="font-medium text-light-text dark:text-dark-text">Call Us</p>
-                      <p className="text-light-text-muted dark:text-dark-text-muted">
+                      <p className="font-medium text-gray-900 dark:text-white">Call Us</p>
+                      <p className="text-gray-600 dark:text-gray-400">
                         +91 98765 43210
                       </p>
                     </div>
                   </div>
                   
-                  <div className="pt-4 border-t border-light-border dark:border-dark-border">
-                    <p className="text-xs text-light-text-muted dark:text-dark-text-muted">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       Studio Hours: 9:00 AM - 10:00 PM<br />
                       All Days of the Week
                     </p>
@@ -417,26 +411,32 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Recent Activity
                 </h3>
                 
                 <div className="space-y-3 text-sm">
                   {recentBookings.slice(0, 3).map((booking) => (
-                    <div key={booking._id} className="flex items-center gap-3 p-2 bg-light-surface-variant dark:bg-dark-surface-variant rounded-lg">
-                      <div className="w-2 h-2 bg-light-primary dark:bg-dark-primary rounded-full" />
+                    <div key={booking._id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-600 dark:text-blue-400 rounded-full" />
                       <div className="flex-1">
-                        <p className="text-light-text dark:text-dark-text">
-                          Booked {booking.studio.name}
+                        <p className="text-gray-900 dark:text-white">
+                          Booked {booking.studio?.name || 'Studio'}
                         </p>
-                        <p className="text-light-text-muted dark:text-dark-text-muted">
-                          {format(new Date(booking.createdAt), 'MMM d, h:mm a')}
+                        <p className="text-gray-600 dark:text-gray-400">
+                          {format(new Date(booking.createdAt || booking.date), 'MMM d, h:mm a')}
                         </p>
                       </div>
                     </div>
                   ))}
+                  
+                  {recentBookings.length === 0 && (
+                    <p className="text-gray-600 dark:text-gray-400 text-center py-4">
+                      No recent activity
+                    </p>
+                  )}
                 </div>
               </motion.div>
             </div>

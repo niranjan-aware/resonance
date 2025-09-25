@@ -15,9 +15,17 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Get token from Zustand store
+    const authStorage = localStorage.getItem('auth-storage')
+    if (authStorage) {
+      try {
+        const { state } = JSON.parse(authStorage)
+        if (state?.token) {
+          config.headers.Authorization = `Bearer ${state.token}`
+        }
+      } catch (error) {
+        console.error('Error parsing auth storage:', error)
+      }
     }
     return config
   },
@@ -37,14 +45,11 @@ apiClient.interceptors.response.use(
     // Handle different error statuses
     if (error.response?.status === 401) {
       // Clear auth data on unauthorized
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      localStorage.removeItem('auth-storage')
       
       // Only show login message if not already on auth flow
       if (!window.location.pathname.includes('/auth')) {
         toast.error('Session expired. Please login again.')
-        // You might want to redirect to login page here
-        // window.location.href = '/login'
       }
       
       return Promise.reject({

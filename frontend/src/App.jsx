@@ -1,6 +1,6 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import Landing from './pages/Landing'
@@ -9,11 +9,16 @@ import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import AuthModal from './components/common/AuthModal'
 import ProtectedRoute from './components/common/ProtectedRoute'
-import { useAuthStore } from './context/AuthContext'
+import { useAuthStore } from './store/useAuthStore'
 
 function App() {
   const location = useLocation()
-  const { showAuthModal } = useAuthStore()
+  const { showAuthModal, checkAuth } = useAuthStore()
+
+  // Check authentication status on app load
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg transition-colors duration-300">

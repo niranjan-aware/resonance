@@ -6,7 +6,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
   const { user, token, isLoading } = useAuthStore()
 
   if (isLoading) {
-    return <Loading />
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+        <Loading size="lg" text="Checking authentication..." />
+      </div>
+    )
   }
 
   if (!token || !user) {

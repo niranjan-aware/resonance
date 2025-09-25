@@ -23,7 +23,7 @@ import StepIndicator from './StepIndicator'
 import StudioSelector from './StudioSelector'
 import TimeSlots from './TimeSlots'
 import { useAuthStore } from '../../store/useAuthStore'
-import { bookingAPI, studioAPI } from '../../services/booking'
+import { useBookingStore } from '../../store/useBookingStore'
 
 const sessionTypes = [
   { 
@@ -87,74 +87,71 @@ const equipment = [
 ]
 
 export default function BookingForm() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [studios, setStudios] = useState([])
-  const [selectedStudio, setSelectedStudio] = useState(null)
-  const [availableSlots, setAvailableSlots] = useState([])
-  const [bookingData, setBookingData] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
-
   const { user, setShowAuthModal } = useAuthStore()
-  const { register, handleSubmit, watch, formState: { errors }, setValue, trigger } = useForm()
+  const { 
+    currentStep,
+    formData,
+    selectedStudio,
+    selectedSlot,
+    studios,
+    availableSlots,
+    isLoading,
+    error,
+    // Actions
+    setCurrentStep,
+    nextStep,
+    prevStep,
+    updateFormData,
+    setSelectedStudio,
+    setSelectedSlot,
+    resetForm,
+    // API calls
+    fetchStudios,
+    fetchAvailableSlots,
+    createBooking,
+    // Validation
+    validateStep,
+    getBookingSummary
+  } = useBookingStore()
 
-  const selectedSessionType = watch('sessionType')
-  const selectedDate = watch('date')
-  const selectedTime = watch('timeSlot')
+  const { register, handleSubmit, watch, formState: { errors }, setValue, trigger } = useForm({
+    defaultValues: formData
+  })
+
+  const selectedSessionType = watch('sessionType') || formData.sessionType
+  const selectedDate = watch('date') || formData.date
+  const selectedTime = watch('timeSlot') || formData.timeSlot
 
   useEffect(() => {
     fetchStudios()
-  }, [])
+  }, [fetchStudios])
 
   useEffect(() => {
     if (selectedSessionType) {
-      fetchSuitableStudios()
+      fetchStudios({ sessionType: selectedSessionType })
     }
-  }, [selectedSessionType])
+  }, [selectedSessionType, fetchStudios])
 
   useEffect(() => {
     if (selectedStudio && selectedDate) {
-      fetchAvailableSlots()
+      fetchAvailableSlots(selectedStudio._id, selectedDate)
     }
-  }, [selectedStudio, selectedDate])
+  }, [selectedStudio, selectedDate, fetchAvailableSlots])
 
-  const fetchStudios = async () => {
-    try {
-      const response = await studioAPI.getStudios()
-      setStudios(response.studios)
-    } catch (error) {
-      toast.error('Failed to load studios')
-    }
-  }
-
-  const fetchSuitableStudios = async () => {
-    try {
-      const response = await studioAPI.getStudios({ 
-        sessionType: selectedSessionType 
-      })
-      setStudios(response.studios)
-    } catch (error) {
-      toast.error('Failed to load suitable studios')
-    }
-  }
-
-  const fetchAvailableSlots = async () => {
-    try {
-      const response = await bookingAPI.getAvailableSlots(selectedStudio._id, selectedDate)
-      setAvailableSlots(response.slots)
-    } catch (error) {
-      toast.error('Failed to load available slots')
-    }
-  }
-
-  const nextStep = async () => {
+  const handleNextStep = async () => {
     const isValid = await trigger()
-    if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, 5))
+    if (isValid && validateStep(currentStep)) {
+      // Update form data in store
+      const watchedData = watch()
+      updateFormData(watchedData)
+      nextStep()
     }
   }
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1))
+  const handlePrevStep = () => {
+    const watchedData = watch()
+    updateFormData(watchedData)
+    prevStep()
   }
 
   const onSubmit = async (data) => {
@@ -163,14 +160,12 @@ export default function BookingForm() {
       return
     }
 
-    setIsLoading(true)
-    
     try {
       const bookingPayload = {
         studioId: selectedStudio._id,
         date: data.date,
-        startTime: data.timeSlot.startTime,
-        endTime: data.timeSlot.endTime,
+        startTime: selectedSlot.startTime,
+        endTime: selectedSlot.endTime,
         sessionType: data.sessionType,
         sessionDetails: {
           participants: data.participants,
@@ -180,15 +175,10 @@ export default function BookingForm() {
         }
       }
 
-      const response = await bookingAPI.createBooking(bookingPayload)
-      
-      toast.success('Booking created successfully!')
-      setCurrentStep(6)
-      setBookingData(response.booking)
+      await createBooking(bookingPayload)
+      setCurrentStep(6) // Success step
     } catch (error) {
-      toast.error(error.message)
-    } finally {
-      setIsLoading(false)
+      // Error is handled by the store
     }
   }
 
@@ -229,6 +219,7 @@ export default function BookingForm() {
                     value={type.id}
                     {...register('sessionType', { required: 'Please select a session type' })}
                     className="sr-only"
+                    onChange={(e) => updateFormData({ sessionType: e.target.value })}
                   />
                   
                   <type.icon className="w-8 h-8 text-light-primary dark:text-dark-primary mr-4" />
@@ -387,17 +378,21 @@ export default function BookingForm() {
                   required: 'Please select a date'
                 })}
                 error={errors.date?.message}
+                onChange={(e) => updateFormData({ date: e.target.value })}
               />
 
               {selectedDate && availableSlots.length > 0 && (
                 <TimeSlots
                   slots={availableSlots}
-                  selectedSlot={selectedTime}
-                  onSlotSelect={(slot) => setValue('timeSlot', slot)}
+                  selectedSlot={selectedSlot}
+                  onSlotSelect={(slot) => {
+                    setSelectedSlot(slot)
+                    setValue('timeSlot', slot)
+                  }}
                 />
               )}
 
-              {selectedDate && availableSlots.length === 0 && (
+              {selectedDate && availableSlots.length === 0 && !isLoading && (
                 <div className="text-center p-8 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl">
                   <Clock className="w-12 h-12 text-light-text-muted dark:text-dark-text-muted mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-2">
@@ -413,6 +408,8 @@ export default function BookingForm() {
         )
 
       case 5:
+        const bookingSummary = getBookingSummary()
+        
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -428,13 +425,47 @@ export default function BookingForm() {
               </p>
             </div>
 
-            {/* Booking Summary Component would go here */}
-            <div className="glass p-6 rounded-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
-                Booking Summary
-              </h3>
-              {/* Summary details */}
-            </div>
+            {bookingSummary && (
+              <div className="glass p-6 rounded-2xl space-y-4">
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
+                  Booking Summary
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-light-text-muted dark:text-dark-text-muted">Studio:</span>
+                    <span className="font-medium text-light-text dark:text-dark-text">{bookingSummary.studio}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-light-text-muted dark:text-dark-text-muted">Date & Time:</span>
+                    <span className="font-medium text-light-text dark:text-dark-text">{bookingSummary.date} • {bookingSummary.time}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-light-text-muted dark:text-dark-text-muted">Duration:</span>
+                    <span className="font-medium text-light-text dark:text-dark-text">{bookingSummary.duration} hours</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-light-text-muted dark:text-dark-text-muted">Session Type:</span>
+                    <span className="font-medium text-light-text dark:text-dark-text">{bookingSummary.sessionType.replace('-', ' ')}</span>
+                  </div>
+                  
+                  <div className="border-t border-light-border dark:border-dark-border pt-3 mt-3">
+                    <div className="flex justify-between">
+                      <span className="text-light-text-muted dark:text-dark-text-muted">Base Price:</span>
+                      <span className="text-light-text dark:text-dark-text">₹{bookingSummary.basePrice}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-light-text-muted dark:text-dark-text-muted">Taxes (18%):</span>
+                      <span className="text-light-text dark:text-dark-text">₹{bookingSummary.taxes}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold text-light-primary dark:text-dark-primary">
+                      <span>Total:</span>
+                      <span>₹{bookingSummary.total}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )
 
@@ -451,23 +482,12 @@ export default function BookingForm() {
             
             <div>
               <h2 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">
-                Booking Confirmed!
+                Booking Created!
               </h2>
               <p className="text-light-text-muted dark:text-dark-text-muted">
                 Your booking has been created successfully. You'll receive a confirmation email shortly.
               </p>
             </div>
-
-            {bookingData.bookingId && (
-              <div className="glass p-6 rounded-2xl">
-                <h3 className="font-semibold text-light-text dark:text-dark-text mb-2">
-                  Booking ID: {bookingData.bookingId}
-                </h3>
-                <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                  Save this ID for future reference
-                </p>
-              </div>
-            )}
 
             <Button
               onClick={() => window.location.href = '/dashboard'}
@@ -485,55 +505,55 @@ export default function BookingForm() {
   }
 
   return (
-    <div className="max-width-container py-8">
-      <div className="max-w-4xl mx-auto">
-        <StepIndicator currentStep={currentStep} totalSteps={5} />
-        
-        <div className="mt-8">
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <AnimatePresence mode="wait">
-              {renderStep()}
-            </AnimatePresence>
+    <div className="max-w-4xl mx-auto py-8">
+      <StepIndicator currentStep={currentStep} totalSteps={5} />
+      
+      <div className="mt-8">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <AnimatePresence mode="wait">
+            {renderStep()}
+          </AnimatePresence>
 
-            <div className="flex justify-between mt-8">
-              {currentStep > 1 && currentStep < 6 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Previous
-                </Button>
-              )}
+          <div className="flex justify-between mt-8">
+            {currentStep > 1 && currentStep < 6 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevStep}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Previous
+              </Button>
+            )}
 
-              {currentStep < 5 && (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className="ml-auto"
-                  disabled={
-                    (currentStep === 3 && !selectedStudio) ||
-                    (currentStep === 4 && (!selectedDate || !selectedTime))
-                  }
-                >
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              )}
+            {currentStep < 5 && (
+              <Button
+                type="button"
+                onClick={handleNextStep}
+                className="ml-auto"
+                disabled={
+                  (currentStep === 3 && !selectedStudio) ||
+                  (currentStep === 4 && (!selectedDate || !selectedSlot)) ||
+                  isLoading
+                }
+                loading={isLoading}
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
 
-              {currentStep === 5 && (
-                <Button
-                  type="submit"
-                  loading={isLoading}
-                  className="ml-auto"
-                >
-                  Confirm Booking
-                </Button>
-              )}
-            </div>
-          </form>
-        </div>
+            {currentStep === 5 && (
+              <Button
+                type="submit"
+                loading={isLoading}
+                className="ml-auto"
+              >
+                Confirm Booking
+              </Button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   )

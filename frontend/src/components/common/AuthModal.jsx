@@ -6,7 +6,25 @@ import Modal from './Modal'
 import Input from './Input'
 import Button from './Button'
 import { useAuthStore } from '../../store/useAuthStore'
-import { validateEmail, validatePhone, validatePassword, validateOTP } from '../../utils/apiUtils'
+
+// Validation helpers
+const validateEmail = (email) => {
+  const emailRegex = /^\S+@\S+\.\S+$/
+  return emailRegex.test(email)
+}
+
+const validatePhone = (phone) => {
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/
+  return phoneRegex.test(phone)
+}
+
+const validatePassword = (password) => {
+  return password && password.length >= 6
+}
+
+const validateOTP = (otp) => {
+  return otp && otp.length === 6 && /^\d{6}$/.test(otp)
+}
 
 export default function AuthModal() {
   const { 
