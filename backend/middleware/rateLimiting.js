@@ -31,7 +31,7 @@ export const bookingLimiter = rateLimit({
 });
 
 export const otpLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: 60 * 1000000,
   max: 1,
   message: {
     success: false,

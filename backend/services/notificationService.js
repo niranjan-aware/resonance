@@ -4,7 +4,7 @@ import { emailTemplates } from '../utils/emailTemplates.js';
 
 class NotificationService {
   constructor() {
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       secure: false,

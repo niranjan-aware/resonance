@@ -1,8 +1,10 @@
+// backend/server.js — top of file (put this *first*)
+import 'dotenv/config'; // loads .env before any other imports
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/database.js';
@@ -13,7 +15,11 @@ import bookingRoutes from './routes/booking.js';
 import studioRoutes from './routes/studio.js';
 import paymentRoutes from './routes/payment.js';
 
-dotenv.config();
+
+// REMOVE any later dotenv.config() call since we used import 'dotenv/config'
+
+
+// dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -61,9 +67,14 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
+// app.use('/:catchAll(*)', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// });
+
+app.use(cors({
+  origin: ["*"], // your React app URL
+  credentials: true // if you need cookies/auth headers
+}));
 
 app.use((error, req, res, next) => {
   console.error(error.stack);
