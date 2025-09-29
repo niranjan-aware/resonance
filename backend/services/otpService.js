@@ -136,11 +136,13 @@ class OTPService {
   }
 }
 
-export default new OTPService();
+const otpServiceInstance = new OTPService();
 
 setInterval(() => {
-  const cleaned = OTPService.cleanupExpiredOTPs();
+  const cleaned = otpServiceInstance.cleanupExpiredOTPs();
   if (cleaned > 0) {
     console.log(`Cleaned up ${cleaned} expired OTPs`);
   }
 }, 5 * 60 * 1000);
+
+export default otpServiceInstance;

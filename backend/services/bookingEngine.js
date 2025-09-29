@@ -11,10 +11,6 @@ export class BookingEngine {
         throw new Error('Studio not found or not available');
       }
 
-      if (!studio.isAvailableAt(date, startTime, endTime)) {
-        throw new Error('Studio not available during requested time');
-      }
-
       const existingBookings = await Booking.find({
         studio: studioId,
         date: new Date(date),
@@ -220,18 +216,12 @@ export class BookingEngine {
       const existingBookings = await Booking.find({
         studio: studioId,
         date: requestedDate,
-        status: { $in: ['confirmed', 'checked-in'] }
+        status: { $in: ['confirmed', 'checked-in', 'pending'] }
       });
 
-      const studioStart = studio.availability.startTime;
-      const studioEnd = studio.availability.endTime;
-      
-      const startHour = parseInt(studioStart.split(':')[0]);
-      const endHour = parseInt(studioEnd.split(':')[0]);
-
       const availableSlots = [];
-
-      for (let hour = startHour; hour < endHour; hour++) {
+      
+      for (let hour = 0; hour < 24; hour++) {
         const slotStart = `${hour.toString().padStart(2, '0')}:00`;
         const slotEnd = `${(hour + 1).toString().padStart(2, '0')}:00`;
 
@@ -242,18 +232,20 @@ export class BookingEngine {
           );
         });
 
-        if (!isBooked) {
-          const isPeakHour = studio.availability.peakHours.some(peak => 
-            slotStart >= peak.start && slotEnd <= peak.end
-          );
+        const isPeakHour = studio.availability.peakHours?.some(peak => 
+          slotStart >= peak.start && slotEnd <= peak.end
+        ) || false;
 
-          availableSlots.push({
-            startTime: slotStart,
-            endTime: slotEnd,
-            price: studio.calculatePrice(date, slotStart, slotEnd),
-            isPeakHour
-          });
-        }
+        const slotPrice = studio.calculatePrice(date, slotStart, slotEnd);
+
+        availableSlots.push({
+          startTime: slotStart,
+          endTime: slotEnd,
+          price: slotPrice,
+          isPeakHour,
+          isBooked,
+          available: !isBooked
+        });
       }
 
       return availableSlots;

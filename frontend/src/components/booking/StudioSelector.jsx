@@ -84,22 +84,19 @@ export default function StudioSelector({
               }
             `}
           >
-            {/* Studio Image */}
             <div className="aspect-video overflow-hidden">
               <img
-                src={studio.primaryImage?.url || studio.images[0]?.url}
+                src={studio.primaryImage?.url || studio.images?.[0]?.url || 'https://via.placeholder.com/800x600?text=Studio'}
                 alt={studio.name}
                 className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
               />
               
-              {/* Size Badge */}
               <div className="absolute top-4 left-4">
                 <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${sizeColors[studio.size]}`}>
                   {studio.size}
                 </span>
               </div>
 
-              {/* Selection Badge */}
               {selectedStudio?._id === studio._id && (
                 <motion.div
                   initial={{ scale: 0 }}
@@ -111,7 +108,6 @@ export default function StudioSelector({
               )}
             </div>
 
-            {/* Studio Info */}
             <div className="p-6 bg-light-surface dark:bg-dark-surface">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -123,7 +119,7 @@ export default function StudioSelector({
                       <Users className="w-4 h-4" />
                       <span>Up to {studio.capacity} people</span>
                     </div>
-                    {studio.ratings.count > 0 && (
+                    {studio.ratings?.count > 0 && (
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                         <span>{studio.ratings.average}</span>
@@ -134,7 +130,7 @@ export default function StudioSelector({
                 
                 <div className="text-right">
                   <div className="text-2xl font-bold text-light-primary dark:text-dark-primary">
-                    ₹{studio.pricing.basePrice}
+                    ₹{studio.pricing?.basePrice || 0}
                   </div>
                   <div className="text-sm text-light-text-muted dark:text-dark-text-muted">
                     per hour
@@ -146,52 +142,54 @@ export default function StudioSelector({
                 {studio.description}
               </p>
 
-              {/* Features */}
               <div className="space-y-3">
-                <div>
-                  <h4 className="text-sm font-medium text-light-text dark:text-dark-text mb-2">
-                    Key Features
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {studio.features.slice(0, 3).map((feature, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-light-surface-variant dark:bg-dark-surface-variant rounded-full text-xs text-light-text dark:text-dark-text"
-                      >
-                        {iconMap[feature] || '✨'}
-                        <span>{feature}</span>
-                      </span>
-                    ))}
-                    {studio.features.length > 3 && (
-                      <span className="px-3 py-1 bg-light-surface-variant dark:bg-dark-surface-variant rounded-full text-xs text-light-text-muted dark:text-dark-text-muted">
-                        +{studio.features.length - 3} more
-                      </span>
-                    )}
+                {studio.features && studio.features.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-light-text dark:text-dark-text mb-2">
+                      Key Features
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {studio.features.slice(0, 3).map((feature, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-light-surface-variant dark:bg-dark-surface-variant rounded-full text-xs text-light-text dark:text-dark-text"
+                        >
+                          {iconMap[feature] || '✨'}
+                          <span>{feature}</span>
+                        </span>
+                      ))}
+                      {studio.features.length > 3 && (
+                        <span className="px-3 py-1 bg-light-surface-variant dark:bg-dark-surface-variant rounded-full text-xs text-light-text-muted dark:text-dark-text-muted">
+                          +{studio.features.length - 3} more
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Amenities */}
-                <div className="flex items-center gap-4 text-sm text-light-text-muted dark:text-dark-text-muted">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{studio.availability.startTime} - {studio.availability.endTime}</span>
-                  </div>
+                <div className="flex items-center gap-4 text-sm text-light-text-muted dark:text-dark-text-muted flex-wrap">
+                  {studio.availability?.startTime && studio.availability?.endTime && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{studio.availability.startTime} - {studio.availability.endTime}</span>
+                    </div>
+                  )}
                   
-                  {studio.specifications.wifi && (
+                  {studio.specifications?.wifi && (
                     <div className="flex items-center gap-1">
                       <Wifi className="w-4 h-4" />
                       <span>WiFi</span>
                     </div>
                   )}
                   
-                  {studio.specifications.parking && (
+                  {studio.specifications?.parking && (
                     <div className="flex items-center gap-1">
                       <Car className="w-4 h-4" />
                       <span>Parking</span>
                     </div>
                   )}
                   
-                  {studio.specifications.airConditioning && (
+                  {studio.specifications?.airConditioning && (
                     <div className="flex items-center gap-1">
                       <Snowflake className="w-4 h-4" />
                       <span>AC</span>
@@ -199,7 +197,6 @@ export default function StudioSelector({
                   )}
                 </div>
 
-                {/* Equipment Preview */}
                 {studio.equipment && studio.equipment.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium text-light-text dark:text-dark-text mb-2">
@@ -224,7 +221,6 @@ export default function StudioSelector({
                 )}
               </div>
 
-              {/* Selection Indicator */}
               <motion.div
                 className={`
                   mt-4 p-3 rounded-lg border transition-all duration-300
@@ -266,16 +262,18 @@ export default function StudioSelector({
                 {selectedStudio.capacity} people
               </span>
             </div>
-            <div>
-              <span className="text-light-text-muted dark:text-dark-text-muted">Area:</span>
-              <span className="ml-2 font-medium text-light-text dark:text-dark-text">
-                {selectedStudio.specifications.area}
-              </span>
-            </div>
+            {selectedStudio.specifications?.area && (
+              <div>
+                <span className="text-light-text-muted dark:text-dark-text-muted">Area:</span>
+                <span className="ml-2 font-medium text-light-text dark:text-dark-text">
+                  {selectedStudio.specifications.area}
+                </span>
+              </div>
+            )}
             <div>
               <span className="text-light-text-muted dark:text-dark-text-muted">Base Price:</span>
               <span className="ml-2 font-medium text-light-primary dark:text-dark-primary">
-                ₹{selectedStudio.pricing.basePrice}/hour
+                ₹{selectedStudio.pricing?.basePrice || 0}/hour
               </span>
             </div>
           </div>

@@ -69,26 +69,128 @@ export const createBooking = async (req, res) => {
       sessionDetails
     } = req.body;
 
+    // Validate required fields
     if (!studioId || !date || !startTime || !endTime || !sessionType) {
       return res.status(400).json({
         success: false,
-        message: 'All booking details are required'
+        message: 'All booking details are required',
+        errors: [
+          { field: 'studioId', message: !studioId ? 'Studio is required' : null },
+          { field: 'date', message: !date ? 'Date is required' : null },
+          { field: 'startTime', message: !startTime ? 'Start time is required' : null },
+          { field: 'endTime', message: !endTime ? 'End time is required' : null },
+          { field: 'sessionType', message: !sessionType ? 'Session type is required' : null }
+        ].filter(e => e.message)
       });
     }
 
+    // Get studio to calculate pricing
+    const studio = await Studio.findById(studioId);
+    if (!studio) {
+      return res.status(404).json({
+        success: false,
+        message: 'Studio not found'
+      });
+    }
+
+    console.log('Studio found:', {
+      id: studio._id,
+      name: studio.name,
+      pricing: studio.pricing,
+      fullStudio: JSON.stringify(studio, null, 2)
+    });
+
+    // Calculate duration in hours
+    const start = new Date(`1970-01-01T${startTime}:00`);
+    const end = new Date(`1970-01-01T${endTime}:00`);
+    const durationHours = (end - start) / (1000 * 60 * 60);
+
+    // Get hourly rate - check multiple possible locations and field names
+    let hourlyRate = 
+      studio.pricing?.hourlyRate || 
+      studio.pricing?.basePrice || 
+      studio.pricing?.perHour ||
+      studio.hourlyRate || 
+      studio.basePrice ||
+      studio.perHour ||
+      1000; // fallback default
+
+    console.log('Pricing calculation:', {
+      hourlyRate,
+      durationHours,
+      calculation: hourlyRate * durationHours,
+      pricingObject: studio.pricing
+    });
+
+    // Ensure we have valid numbers
+    if (!hourlyRate || isNaN(hourlyRate) || hourlyRate <= 0) {
+      console.error('Invalid hourly rate detected:', hourlyRate);
+      hourlyRate = 1000; // Use default fallback
+    }
+
+    // Calculate pricing with proper rounding
+    const baseAmount = Math.round(hourlyRate * durationHours);
+    const taxes = Math.round(baseAmount * 0.18); // 18% GST
+    const totalAmount = baseAmount + taxes;
+
+    console.log('Final pricing:', { baseAmount, taxes, totalAmount });
+
+    // Verify all pricing values are valid numbers
+    if (isNaN(baseAmount) || isNaN(taxes) || isNaN(totalAmount)) {
+      throw new Error('Pricing calculation resulted in invalid values');
+    }
+
+    // Generate bookingId manually before creating the document
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+    const generatedBookingId = `RES-${timestamp}-${random}`;
+
+    // Transform the data to match the Booking schema structure
     const bookingData = {
-      userId: req.user.id,
-      studioId,
-      date,
-      startTime,
-      endTime,
+      bookingId: generatedBookingId, // Set it explicitly
+      user: req.user.id,
+      studio: studioId,
+      date: new Date(date),
+      timeSlot: {
+        startTime: startTime,
+        endTime: endTime
+      },
       sessionType,
-      sessionDetails: sessionDetails || {}
+      sessionDetails: sessionDetails || {},
+      pricing: {
+        baseAmount,
+        equipmentCost: 0,
+        taxes,
+        discount: 0,
+        totalAmount
+      },
+      metadata: {
+        source: 'website',
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      }
     };
 
-    const booking = await BookingEngine.createBooking(bookingData);
+    console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
 
-    await NotificationService.sendAdminNotification(booking, 'new_booking');
+    // Create the booking directly with Mongoose
+    const booking = await Booking.create(bookingData);
+
+    console.log('Booking created successfully:', booking.bookingId);
+
+    // Populate the studio and user information with limited fields to avoid virtual property issues
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate('studio', 'name size capacity pricing location images')
+      .populate('user', 'name email phone')
+      .lean(); // Use lean() to get plain JavaScript object without virtuals
+
+    // Send notification (optional, can be async)
+    try {
+      await NotificationService.sendAdminNotification(booking, 'new_booking');
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+      // Don't fail the booking if notification fails
+    }
 
     res.status(201).json({
       success: true,
@@ -96,9 +198,25 @@ export const createBooking = async (req, res) => {
       message: 'Booking created successfully'
     });
   } catch (error) {
+    console.error('Booking creation error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Booking validation failed',
+        errors
+      });
+    }
+
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message || 'Failed to create booking'
     });
   }
 };

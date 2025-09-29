@@ -37,7 +37,13 @@ const isValidTime = (value) => {
 
 const isValidDate = (value) => {
   const date = new Date(value);
-  return !isNaN(date.getTime()) && date > new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  return !isNaN(date.getTime()) && date >= tomorrow;
 };
 
 const isValidSessionType = (value) => {

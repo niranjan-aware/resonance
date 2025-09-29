@@ -222,32 +222,59 @@ export default function BookingForm() {
   }
 
   const onSubmit = async (data) => {
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
-
-    try {
-      const bookingPayload = {
-        studioId: selectedStudio._id,
-        date: data.date,
-        startTime: selectedSlot.startTime,
-        endTime: selectedSlot.endTime,
-        sessionType: data.sessionType,
-        sessionDetails: {
-          participants: data.participants,
-          musicians: data.musicians,
-          equipment: data.equipment || [],
-          specialRequirements: data.specialRequirements
-        }
-      }
-
-      await createBooking(bookingPayload)
-      setCurrentStep(6) // Success step
-    } catch (error) {
-      // Error is handled by the store
-    }
+  if (!user) {
+    setShowAuthModal(true);
+    return;
   }
+
+  try {
+    console.log('=== BOOKING SUBMISSION ===');
+    console.log('Selected Studio:', selectedStudio);
+    console.log('Selected Slot:', selectedSlot);
+    console.log('Form Data:', data);
+
+    if (!selectedStudio?._id) {
+      toast.error('Please select a studio');
+      return;
+    }
+
+    if (!selectedSlot) {
+      toast.error('Please select a time slot');
+      return;
+    }
+
+    if (!data.date) {
+      toast.error('Please select a date');
+      return;
+    }
+
+    const bookingPayload = {
+      studioId: selectedStudio._id,
+      date: data.date,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      sessionType: data.sessionType,
+      sessionDetails: {
+        participants: data.participants ? parseInt(data.participants) : undefined,
+        musicians: data.musicians ? parseInt(data.musicians) : undefined,
+        equipment: data.equipment || [],
+        specialRequirements: data.specialRequirements || ''
+      }
+    };
+
+    console.log('Final Booking Payload:', JSON.stringify(bookingPayload, null, 2));
+
+    await createBooking(bookingPayload);
+    setCurrentStep(6);
+  } catch (error) {
+    console.error('Booking error:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.errors?.[0]?.message ||
+                        error.message || 
+                        'Failed to create booking';
+    toast.error(errorMessage);
+  }
+};
 
   const renderStep = () => {
     switch (currentStep) {
@@ -430,60 +457,93 @@ export default function BookingForm() {
         )
 
       case 4:
-        return (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">
-                Select Date & Time
-              </h2>
-              <p className="text-light-text-muted dark:text-dark-text-muted">
-                Choose your preferred date and time slot
-              </p>
-            </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6"
+    >
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">
+          Select Date & Time
+        </h2>
+        <p className="text-light-text-muted dark:text-dark-text-muted">
+          Choose your preferred date and time slot
+        </p>
+      </div>
 
-            <div className="space-y-6">
-              <Input
-                label="Date"
-                type="date"
-                icon={Calendar}
-                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                max={new Date(Date.now() + 120 * 86400000).toISOString().split('T')[0]}
-                {...register('date', {
-                  required: 'Please select a date'
-                })}
-                error={errors.date?.message}
-                onChange={(e) => updateFormData({ date: e.target.value })}
-              />
+      <div className="space-y-6">
+        <Input
+          label="Date"
+          type="date"
+          icon={Calendar}
+          min={(() => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow.toISOString().split('T')[0];
+          })()}
+          max={(() => {
+            const maxDate = new Date();
+            maxDate.setMonth(maxDate.getMonth() + 4);
+            return maxDate.toISOString().split('T')[0];
+          })()}
+          {...register('date', {
+            required: 'Please select a date',
+            validate: (value) => {
+              const selectedDate = new Date(value);
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              tomorrow.setHours(0, 0, 0, 0);
+              
+              if (selectedDate < tomorrow) {
+                return 'Please select a date from tomorrow onwards';
+              }
+              return true;
+            }
+          })}
+          error={errors.date?.message}
+          onChange={(e) => {
+            updateFormData({ date: e.target.value });
+            setSelectedSlot(null);
+          }}
+        />
 
-              {selectedDate && availableSlots.length > 0 && (
-                <TimeSlots
-                  slots={availableSlots}
-                  selectedSlot={selectedSlot}
-                  onSlotSelect={(slot) => {
-                    setSelectedSlot(slot)
-                    setValue('timeSlot', slot)
-                  }}
-                />
-              )}
+        {selectedDate && isLoading && (
+          <div className="text-center p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-light-primary dark:border-dark-primary mx-auto"></div>
+            <p className="mt-4 text-light-text-muted dark:text-dark-text-muted">
+              Loading available slots...
+            </p>
+          </div>
+        )}
 
-              {selectedDate && availableSlots.length === 0 && !isLoading && (
-                <div className="text-center p-8 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl">
-                  <Clock className="w-12 h-12 text-light-text-muted dark:text-dark-text-muted mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-2">
-                    No Available Slots
-                  </h3>
-                  <p className="text-light-text-muted dark:text-dark-text-muted">
-                    Try selecting a different date or studio
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )
+        {selectedDate && availableSlots.length > 0 && (
+          <TimeSlots
+            slots={availableSlots}
+            selectedSlot={selectedSlot}
+            onSlotSelect={(slot) => {
+              if (!slot.isBooked) {
+                setSelectedSlot(slot);
+                setValue('timeSlot', slot);
+              }
+            }}
+          />
+        )}
+
+        {selectedDate && availableSlots.length === 0 && !isLoading && (
+          <div className="text-center p-8 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl">
+            <Clock className="w-12 h-12 text-light-text-muted dark:text-dark-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-2">
+              No Available Slots
+            </h3>
+            <p className="text-light-text-muted dark:text-dark-text-muted">
+              Try selecting a different date or studio
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )
 
       case 5:
         const bookingSummary = getBookingSummary()

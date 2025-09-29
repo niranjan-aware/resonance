@@ -1,3 +1,4 @@
+// backend/utils/emailTemplates.js
 export const emailTemplates = {
   bookingConfirmation: (data) => `
     <!DOCTYPE html>
@@ -64,12 +65,12 @@ export const emailTemplates = {
                     <li>Please arrive 15 minutes before your session</li>
                     <li>Bring a valid ID for verification</li>
                     <li>Cancellations must be made 24 hours in advance</li>
-                    <li>Contact us at +91-XXXXXXXXX for any queries</li>
+                    <li>Contact us at +91-98765 43210 for any queries</li>
                 </ul>
                 
                 <div class="footer">
                     <p>Resonance Studio - Sinhgad Road<br>
-                    📧 info@resonancestudio.com | 📞 +91-XXXXXXXXX<br>
+                    📧 info@resonancestudio.com | 📞 +91-98765 43210<br>
                     <a href="${process.env.FRONTEND_URL}">Visit our website</a></p>
                 </div>
             </div>
@@ -225,6 +226,162 @@ export const emailTemplates = {
                     <div class="info-item">
                         <div class="label">Status</div>
                         <div class="value">${data.status}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `,
+
+  contactFormAdmin: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Contact Form Submission</title>
+        <style>
+            body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #1E293B, #334155); color: white; text-align: center; padding: 30px; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .info-box { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2563EB; }
+            .label { font-weight: 600; color: #64748b; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; display: block; }
+            .value { color: #1e293b; font-size: 14px; margin-top: 5px; }
+            .message-box { background: #f8fafc; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0; }
+            .action-button { display: inline-block; background: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 15px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎵 New Contact Form Submission</h1>
+                <p>Resonance Studio</p>
+            </div>
+            <div class="content">
+                <div class="info-box">
+                    <span class="label">From</span>
+                    <div class="value">${data.userName}</div>
+                </div>
+
+                <div class="info-box">
+                    <span class="label">Email</span>
+                    <div class="value"><a href="mailto:${data.userEmail}" style="color: #2563EB; text-decoration: none;">${data.userEmail}</a></div>
+                </div>
+
+                <div class="info-box">
+                    <span class="label">Phone</span>
+                    <div class="value"><a href="tel:${data.userPhone}" style="color: #2563EB; text-decoration: none;">${data.userPhone}</a></div>
+                </div>
+
+                <div class="info-box">
+                    <span class="label">Subject / Inquiry Type</span>
+                    <div class="value">${data.subject}</div>
+                </div>
+
+                <div class="info-box">
+                    <span class="label">Preferred Contact Method</span>
+                    <div class="value" style="text-transform: capitalize;">${data.preferredContact || 'Email'}</div>
+                </div>
+
+                <div class="info-box">
+                    <span class="label">Received At</span>
+                    <div class="value">${data.timestamp}</div>
+                </div>
+
+                <div class="message-box">
+                    <span class="label">Message</span>
+                    <div class="value" style="white-space: pre-wrap; margin-top: 10px; line-height: 1.6;">${data.message}</div>
+                </div>
+
+                <center>
+                    <a href="mailto:${data.userEmail}?subject=Re: ${encodeURIComponent(data.subject)}" class="action-button">
+                        📧 Reply to ${data.userName}
+                    </a>
+                </center>
+
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px;">
+                    <p>This is an automated notification from Resonance Studio contact form.</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `,
+
+  contactFormUser: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thank You for Contacting Us</title>
+        <style>
+            body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #2563EB, #3B82F6); color: white; text-align: center; padding: 40px 30px; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .highlight-box { background: #EFF6FF; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563EB; }
+            .message-copy { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; white-space: pre-wrap; line-height: 1.6; }
+            .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+            .link-button { display: inline-block; color: #2563EB; text-decoration: none; margin: 5px 10px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>✅ Message Received!</h1>
+                <p style="margin: 0; font-size: 16px;">We'll get back to you soon</p>
+            </div>
+            <div class="content">
+                <p>Hello <strong>${data.userName}</strong>,</p>
+                
+                <p>Thank you for reaching out to <strong>Resonance Studio</strong>! We've successfully received your inquiry about <strong>"${data.subject}"</strong>.</p>
+
+                <div class="highlight-box">
+                    <h3 style="margin-top: 0; color: #2563EB;">⏱️ What Happens Next?</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                        <li>Our team will review your message within <strong>2-4 business hours</strong></li>
+                        <li>We'll respond via your preferred method: <strong style="text-transform: capitalize;">${data.preferredContact || 'Email'}</strong></li>
+                        <li>For urgent inquiries, call us at <a href="tel:+919876543210" style="color: #2563EB;">+91 98765 43210</a></li>
+                    </ul>
+                </div>
+
+                <div style="margin: 25px 0;">
+                    <p style="margin-bottom: 10px;"><strong>📝 Your Message:</strong></p>
+                    <div class="message-copy">${data.message}</div>
+                </div>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                    <h4 style="color: #1e293b; margin-bottom: 15px;">🎵 Meanwhile, you can:</h4>
+                    <ul style="color: #64748b; line-height: 1.8;">
+                        <li>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/booking" class="link-button">📅 Book a Studio Session</a>
+                        </li>
+                        <li>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/studios" class="link-button">🎸 Browse Our Studios</a>
+                        </li>
+                        <li>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/calendar" class="link-button">📆 Check Availability</a>
+                        </li>
+                        <li>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/pricing" class="link-button">💰 View Pricing Plans</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="footer">
+                    <p><strong>Resonance Studio</strong><br>
+                    Sinhgad Road, Pune, Maharashtra 411041<br>
+                    📧 <a href="mailto:hello@resonancestudio.com" style="color: #2563EB;">hello@resonancestudio.com</a> | 
+                    📞 <a href="tel:+919876543210" style="color: #2563EB;">+91 98765 43210</a><br>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="color: #2563EB;">Visit our website</a></p>
+                    
+                    <div style="margin-top: 15px;">
+                        <a href="https://instagram.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">Instagram</a>
+                        <a href="https://facebook.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">Facebook</a>
+                        <a href="https://youtube.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">YouTube</a>
                     </div>
                 </div>
             </div>

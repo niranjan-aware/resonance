@@ -14,6 +14,9 @@ import authRoutes from './routes/auth.js';
 import bookingRoutes from './routes/booking.js';
 import studioRoutes from './routes/studio.js';
 import paymentRoutes from './routes/payment.js';
+import contactRoutes from './routes/contact.js';
+
+
 
 
 // REMOVE any later dotenv.config() call since we used import 'dotenv/config'
@@ -46,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/studio', studioRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ 
