@@ -1,3 +1,4 @@
+// Updated App.jsx to include Gallery
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
@@ -7,8 +8,11 @@ import Landing from './pages/Landing'
 import Booking from './pages/Booking'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
+import Gallery from './pages/Gallery' // Add this import
 import AuthModal from './components/common/AuthModal'
 import ProtectedRoute from './components/common/ProtectedRoute'
+import ContactSection from './components/landing/ContactSection'
+import StudioShowcase from './components/landing/StudioShowcase'
 import { useAuthStore } from './store/useAuthStore'
 
 function App() {
@@ -37,6 +41,9 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/calendar" element={<Calendar />} />
+            <Route path="/gallery" element={<Gallery />} /> {/* Add this route */}
+            <Route path="/contact" element={<ContactSection />} />
+            <Route path="/studios" element={<StudioShowcase />} />
             <Route 
               path="/dashboard" 
               element={

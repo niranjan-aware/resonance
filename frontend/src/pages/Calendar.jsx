@@ -1,3 +1,5 @@
+
+// src/pages/Calendar.jsx
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -33,24 +35,24 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="py-12"
       >
-        <div className="max-width-container">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="w-16 h-16 bg-gradient-to-br from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <CalendarIcon className="w-8 h-8 text-white" />
             </div>
             
-            <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Studio Availability Calendar
             </h1>
-            <p className="text-xl text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Check real-time availability across all our studios and find the perfect time for your session.
             </p>
           </div>
@@ -58,7 +60,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Calendar Section */}
             <div className="xl:col-span-2">
-              <div className="glass rounded-2xl p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                 <Calendar
                   selectedStudio={selectedStudio}
                   onDateSelect={handleDateSelect}
@@ -75,32 +77,32 @@ export default function CalendarPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="glass rounded-2xl p-6"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
                 >
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <CalendarIcon className="w-5 h-5 text-light-primary dark:text-dark-primary" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <CalendarIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     Selected Date
                   </h3>
                   
-                  <div className="text-center p-4 bg-light-primary/5 dark:bg-dark-primary/5 rounded-xl">
-                    <div className="text-2xl font-bold text-light-primary dark:text-dark-primary">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {format(selectedDate, 'MMM')}
                     </div>
-                    <div className="text-3xl font-bold text-light-text dark:text-dark-text">
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white">
                       {format(selectedDate, 'd')}
                     </div>
-                    <div className="text-light-text-muted dark:text-dark-text-muted">
+                    <div className="text-gray-600 dark:text-gray-400">
                       {format(selectedDate, 'EEEE, yyyy')}
                     </div>
                   </div>
 
                   {selectedStudio && (
-                    <div className="mt-4 p-4 bg-light-surface-variant dark:bg-dark-surface-variant rounded-xl">
-                      <h4 className="font-medium text-light-text dark:text-dark-text mb-2">
+                    <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                         Studio: {selectedStudio.name}
                       </h4>
-                      <div className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                        Base Price: ₹{selectedStudio.pricing.basePrice}/hour
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Base Price: ₹{selectedStudio.pricing?.basePrice || 0}/hour
                       </div>
                     </div>
                   )}
@@ -112,10 +114,10 @@ export default function CalendarPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="glass rounded-2xl p-6"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
                 >
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-light-primary dark:text-dark-primary" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     Available Times
                   </h3>
                   
@@ -131,9 +133,9 @@ export default function CalendarPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Quick Actions
                 </h3>
                 
@@ -171,34 +173,34 @@ export default function CalendarPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-2xl p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700"
               >
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Availability Legend
                 </h3>
                 
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded" />
-                    <span className="text-light-text-muted dark:text-dark-text-muted">
+                    <span className="text-gray-600 dark:text-gray-400">
                       High Availability (7+ slots)
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded" />
-                    <span className="text-light-text-muted dark:text-dark-text-muted">
+                    <span className="text-gray-600 dark:text-gray-400">
                       Medium Availability (3-6 slots)
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded" />
-                    <span className="text-light-text-muted dark:text-dark-text-muted">
+                    <span className="text-gray-600 dark:text-gray-400">
                       Low Availability (1-2 slots)
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded" />
-                    <span className="text-light-text-muted dark:text-dark-text-muted">
+                    <span className="text-gray-600 dark:text-gray-400">
                       Fully Booked (0 slots)
                     </span>
                   </div>

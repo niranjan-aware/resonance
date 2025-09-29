@@ -6,8 +6,6 @@ import {
   Star, 
   ArrowRight,
   Music,
-  Mic,
-  Guitar,
   Volume2,
   Headphones,
   Radio,

@@ -1,557 +1,269 @@
+// quick-seed.js - Run this to populate your database
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import User from '../models/User.js';
-import Studio from '../models/Studio.js';
-import Booking from '../models/Booking.js';
 
+// MongoDB connection
+const MONGODB_URI = 'mongodb+srv://nirobaaware26_db_user:ICMpfwZ4gVtvBBw3@cluster0.iog6i83.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'; // Update with your URI
 
-// Configuration
-const config = {
-  dropExisting: process.env.DROP_EXISTING === 'true',
-  createIndexes: true,
-  logProgress: true
-};
+// Schema definitions (simplified)
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  phone: { type: String, unique: true },
+  password: String,
+  role: { type: String, default: 'user' },
+  authProvider: { type: String, default: 'email' },
+  isVerified: { type: Boolean, default: true }
+});
 
-// Sample data
-const sampleUsers = [
-  {
-    name: 'Admin User',
-    email: 'admin@musicstudio.com',
-    password: 'admin123',
-    role: 'admin',
-    phone: '+1-555-0001',
-    verified: true
+const StudioSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  size: { type: String, enum: ['small', 'medium', 'large'] },
+  capacity: Number,
+  description: String,
+  features: [String],
+  equipment: [{
+    name: String,
+    brand: String,
+    model: String,
+    isAvailable: { type: Boolean, default: true },
+    rentalPrice: { type: Number, default: 0 }
+  }],
+  images: [{
+    url: String,
+    caption: String,
+    isPrimary: { type: Boolean, default: false }
+  }],
+  pricing: {
+    basePrice: Number,
+    peakHourMultiplier: { type: Number, default: 1.2 },
+    minimumHours: { type: Number, default: 1 },
+    maximumHours: { type: Number, default: 12 }
   },
-  {
-    name: 'John Producer',
-    email: 'john@example.com',
-    password: 'password123',
-    role: 'user',
-    phone: '+1-555-0002',
-    verified: true,
-    preferences: {
-      notifications: true,
-      reminderTime: 24
-    }
+  availability: {
+    startTime: { type: String, default: '09:00' },
+    endTime: { type: String, default: '22:00' },
+    workingDays: [{ type: Number }],
+    peakHours: [{ start: String, end: String }]
   },
-  {
-    name: 'Sarah Musician',
-    email: 'sarah@example.com',
-    password: 'password123',
-    role: 'user',
-    phone: '+1-555-0003',
-    verified: true,
-    preferences: {
-      notifications: false,
-      reminderTime: 12
-    }
-  },
-  {
-    name: 'Mike Band',
-    email: 'mike@example.com',
-    password: 'password123',
-    role: 'user',
-    phone: '+1-555-0004',
-    verified: false
-  },
-  {
-    name: 'Emma Solo',
-    email: 'emma@example.com',
-    password: 'password123',
-    role: 'user',
-    phone: '+1-555-0005',
-    verified: true,
-    preferences: {
-      notifications: true,
-      reminderTime: 48
-    }
+  suitableFor: [String],
+  isActive: { type: Boolean, default: true },
+  ratings: {
+    average: { type: Number, default: 4.8 },
+    count: { type: Number, default: 25 }
   }
-];
+});
 
-const sampleStudios = [
+const User = mongoose.model('User', UserSchema);
+const Studio = mongoose.model('Studio', StudioSchema);
+
+// Seed data
+const studiosData = [
   {
-    name: 'Studio A - Professional',
-    description: 'Premium recording studio with state-of-the-art equipment perfect for professional recordings and mixing.',
+    name: 'Studio A - The Arena',
     size: 'large',
-    capacity: 8,
-    hourlyRate: 150,
-    amenities: [
-      'SSL Console',
-      'Pro Tools HDX',
-      'Vintage Microphones',
-      'Acoustic Treatment',
-      'Isolation Booth',
-      'Piano',
-      'Drum Kit',
-      'Guitar Amps'
+    capacity: 15,
+    description: 'Our flagship studio featuring premium acoustics, professional-grade equipment, and spacious recording area. Perfect for bands, orchestras, and large group sessions.',
+    features: [
+      'Professional acoustic treatment',
+      'Climate controlled environment',
+      'Premium monitoring system',
+      'Isolated control room',
+      'Natural lighting',
+      'Spacious live room'
     ],
     equipment: [
-      'Neumann U87',
-      'SSL 4000 Series Console',
-      'Pro Tools Ultimate',
-      'Yamaha C7 Grand Piano',
-      'DW Drum Kit',
-      'Marshall JCM800',
-      'Fender Twin Reverb'
+      { name: 'Drum Kit', brand: 'Pearl', model: 'Export Series', isAvailable: true, rentalPrice: 500 },
+      { name: 'Electric Guitar', brand: 'Fender', model: 'Stratocaster', isAvailable: true, rentalPrice: 300 },
+      { name: 'Guitar Amp', brand: 'Marshall', model: 'DSL40CR', isAvailable: true, rentalPrice: 400 },
+      { name: 'Bass Amp', brand: 'Ampeg', model: 'BA-115', isAvailable: true, rentalPrice: 400 },
+      { name: 'Keyboard', brand: 'Roland', model: 'RD-88', isAvailable: true, rentalPrice: 350 }
     ],
     images: [
-      'https://example.com/studio-a-1.jpg',
-      'https://example.com/studio-a-2.jpg'
+      {
+        url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&h=600&fit=crop',
+        caption: 'Main recording area with full band setup',
+        isPrimary: true
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop',
+        caption: 'Professional acoustic treatment',
+        isPrimary: false
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&h=600&fit=crop',
+        caption: 'State-of-the-art equipment',
+        isPrimary: false
+      }
     ],
-    availability: {
-      monday: { start: '09:00', end: '22:00' },
-      tuesday: { start: '09:00', end: '22:00' },
-      wednesday: { start: '09:00', end: '22:00' },
-      thursday: { start: '09:00', end: '22:00' },
-      friday: { start: '09:00', end: '23:00' },
-      saturday: { start: '10:00', end: '23:00' },
-      sunday: { start: '12:00', end: '20:00' }
+    pricing: {
+      basePrice: 2500,
+      peakHourMultiplier: 1.3,
+      minimumHours: 2,
+      maximumHours: 8
     },
-    active: true
+    availability: {
+      startTime: '09:00',
+      endTime: '22:00',
+      workingDays: [0, 1, 2, 3, 4, 5, 6],
+      peakHours: [
+        { start: '18:00', end: '22:00' },
+        { start: '10:00', end: '14:00' }
+      ]
+    },
+    suitableFor: ['band', 'live-musicians', 'video-recording', 'audio-recording', 'show'],
+    isActive: true,
+    ratings: { average: 4.9, count: 127 }
   },
   {
-    name: 'Studio B - Creative',
-    description: 'Mid-size studio ideal for bands, podcasts, and creative projects with a relaxed atmosphere.',
+    name: 'Studio B - The Booth',
     size: 'medium',
-    capacity: 5,
-    hourlyRate: 100,
-    amenities: [
-      'Digital Mixing Board',
-      'Logic Pro X',
-      'Podcast Setup',
-      'Comfortable Lounge',
-      'Kitchenette',
-      'Guitar Collection',
-      'Bass Amps'
+    capacity: 8,
+    description: 'Perfect for smaller bands, duos, and solo artists. Features excellent acoustics and professional equipment in a cozy environment.',
+    features: [
+      'Intimate recording space',
+      'Professional monitors',
+      'Vocal booth',
+      'Digital mixing console',
+      'Comfortable seating area',
+      'Ambient lighting'
     ],
     equipment: [
-      'Focusrite Scarlett 18i20',
-      'KRK Rokit Monitors',
-      'Shure SM7B',
-      'Logic Pro X',
-      'Fender Stratocaster',
-      'Gibson Les Paul',
-      'Ampeg Bass Amp'
+      { name: 'Drum Kit', brand: 'Yamaha', model: 'Stage Custom', isAvailable: true, rentalPrice: 400 },
+      { name: 'Electric Guitar', brand: 'Gibson', model: 'Les Paul', isAvailable: true, rentalPrice: 350 },
+      { name: 'Guitar Amp', brand: 'Marshall', model: 'JCM800', isAvailable: true, rentalPrice: 450 },
+      { name: 'Bass Guitar', brand: 'Fender', model: 'Precision Bass', isAvailable: true, rentalPrice: 300 }
     ],
     images: [
-      'https://example.com/studio-b-1.jpg',
-      'https://example.com/studio-b-2.jpg'
+      {
+        url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
+        caption: 'Cozy medium-sized studio perfect for bands',
+        isPrimary: true
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1519508234439-4f23643125c1?w=800&h=600&fit=crop',
+        caption: 'Professional vocal booth',
+        isPrimary: false
+      }
     ],
-    availability: {
-      monday: { start: '10:00', end: '21:00' },
-      tuesday: { start: '10:00', end: '21:00' },
-      wednesday: { start: '10:00', end: '21:00' },
-      thursday: { start: '10:00', end: '21:00' },
-      friday: { start: '10:00', end: '22:00' },
-      saturday: { start: '11:00', end: '22:00' },
-      sunday: { start: '13:00', end: '19:00' }
+    pricing: {
+      basePrice: 1800,
+      peakHourMultiplier: 1.2,
+      minimumHours: 1,
+      maximumHours: 6
     },
-    active: true
+    availability: {
+      startTime: '10:00',
+      endTime: '22:00',
+      workingDays: [0, 1, 2, 3, 4, 5, 6],
+      peakHours: [{ start: '19:00', end: '22:00' }]
+    },
+    suitableFor: ['band', 'live-musicians', 'audio-recording', 'karaoke'],
+    isActive: true,
+    ratings: { average: 4.8, count: 89 }
   },
   {
-    name: 'Studio C - Intimate',
-    description: 'Cozy studio perfect for solo artists, songwriting sessions, and small acoustic recordings.',
+    name: 'Studio C - The Corner',
     size: 'small',
-    capacity: 3,
-    hourlyRate: 75,
-    amenities: [
-      'Acoustic Treatment',
-      'Vintage Microphones',
-      'Guitar/Vocal Setup',
-      'Natural Lighting',
-      'Coffee Bar',
-      'Comfortable Seating'
+    capacity: 5,
+    description: 'Intimate space ideal for solo artists, acoustic sessions, and small group recordings. Features warm acoustics and essential equipment.',
+    features: [
+      'Warm acoustic environment',
+      'Perfect for acoustic sessions',
+      'Professional microphones',
+      'Compact mixing setup',
+      'Comfortable atmosphere',
+      'Great for demos'
     ],
     equipment: [
-      'Audio-Technica AT4040',
-      'Presonus Studio 24c',
-      'Yamaha HS5 Monitors',
-      'GarageBand/Logic Pro X',
-      'Taylor Acoustic Guitar',
-      'Fender Acoustic',
-      'Vocal Booth'
+      { name: 'Acoustic Guitar', brand: 'Taylor', model: '814ce', isAvailable: true, rentalPrice: 250 },
+      { name: 'Electric Guitar', brand: 'Fender', model: 'Telecaster', isAvailable: true, rentalPrice: 250 },
+      { name: 'Guitar Amp', brand: 'Laney', model: 'CUB12R', isAvailable: true, rentalPrice: 200 },
+      { name: 'Keyboard', brand: 'Yamaha', model: 'P-125', isAvailable: true, rentalPrice: 300 }
     ],
     images: [
-      'https://example.com/studio-c-1.jpg'
+      {
+        url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&h=600&fit=crop',
+        caption: 'Intimate corner studio for solo artists',
+        isPrimary: true
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&h=600&fit=crop',
+        caption: 'Perfect for acoustic sessions',
+        isPrimary: false
+      }
     ],
-    availability: {
-      monday: { start: '09:00', end: '20:00' },
-      tuesday: { start: '09:00', end: '20:00' },
-      wednesday: { start: '09:00', end: '20:00' },
-      thursday: { start: '09:00', end: '20:00' },
-      friday: { start: '09:00', end: '21:00' },
-      saturday: { start: '10:00', end: '21:00' },
-      sunday: { start: '14:00', end: '18:00' }
+    pricing: {
+      basePrice: 1200,
+      peakHourMultiplier: 1.15,
+      minimumHours: 1,
+      maximumHours: 4
     },
-    active: true
+    availability: {
+      startTime: '09:00',
+      endTime: '21:00',
+      workingDays: [1, 2, 3, 4, 5, 6],
+      peakHours: [{ start: '17:00', end: '21:00' }]
+    },
+    suitableFor: ['karaoke', 'audio-recording', 'live-musicians'],
+    isActive: true,
+    ratings: { average: 4.7, count: 64 }
   }
 ];
 
-// Utility functions
-const log = (message, type = 'info') => {
-  if (!config.logProgress) return;
-  
-  const timestamp = new Date().toISOString();
-  const prefix = {
-    info: '📝',
-    success: '✅',
-    error: '❌',
-    warning: '⚠️'
-  }[type] || '📝';
-  
-  console.log(`${prefix} [${timestamp}] ${message}`);
+const adminUser = {
+  name: 'Admin User',
+  email: 'admin@resonancestudio.com',
+  phone: '+919876543210',
+  password: 'admin123',
+  role: 'admin',
+  authProvider: 'email',
+  isVerified: true
 };
 
-const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(password, salt);
-};
+async function seedDatabase() {
+  try {
+    console.log('🔌 Connecting to MongoDB...');
+    await mongoose.connect(MONGODB_URI);
+    console.log('✅ Connected to MongoDB');
 
-const generateBookings = (users, studios) => {
-  const bookings = [];
-  const statuses = ['confirmed', 'pending', 'cancelled', 'completed'];
-  const purposes = [
-    'Recording Session',
-    'Mixing & Mastering',
-    'Rehearsal',
-    'Podcast Recording',
-    'Voice Over',
-    'Music Video Audio',
-    'Demo Recording',
-    'Live Session'
-  ];
+    // Clear existing data
+    console.log('🗑️ Clearing existing data...');
+    await Studio.deleteMany({});
+    await User.deleteMany({});
 
-  // Generate bookings for the past 30 days and next 60 days
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30);
-  
-  for (let i = 0; i < 50; i++) {
-    const randomDate = new Date(startDate);
-    randomDate.setDate(startDate.getDate() + Math.floor(Math.random() * 90));
-    
-    // Skip weekends for some bookings to make it realistic
-    if (Math.random() < 0.3 && (randomDate.getDay() === 0 || randomDate.getDay() === 6)) {
-      continue;
-    }
-    
-    const randomUser = users[Math.floor(Math.random() * (users.length - 1)) + 1]; // Skip admin
-    const randomStudio = studios[Math.floor(Math.random() * studios.length)];
-    
-    const startHour = Math.floor(Math.random() * 10) + 9; // 9 AM to 6 PM start times
-    const duration = [1, 2, 3, 4, 6, 8][Math.floor(Math.random() * 6)]; // Various durations
-    
-    const startTime = new Date(randomDate);
-    startTime.setHours(startHour, 0, 0, 0);
-    
-    const endTime = new Date(startTime);
-    endTime.setHours(startTime.getHours() + duration);
-    
-    // Determine status based on date
-    let status;
-    const now = new Date();
-    if (startTime < now) {
-      status = Math.random() < 0.8 ? 'completed' : 'cancelled';
-    } else {
-      status = Math.random() < 0.9 ? 'confirmed' : 'pending';
-    }
-    
-    const totalCost = randomStudio.hourlyRate * duration;
-    
-    bookings.push({
-      user: randomUser._id,
-      studio: randomStudio._id,
-      startTime,
-      endTime,
-      duration,
-      purpose: purposes[Math.floor(Math.random() * purposes.length)],
-      status,
-      totalCost,
-      notes: Math.random() < 0.3 ? 'Special requirements discussed via phone' : undefined,
-      paymentStatus: status === 'completed' ? 'paid' : status === 'confirmed' ? 'pending' : 'refunded',
-      createdAt: new Date(startTime.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Created 0-7 days before booking
-      metadata: {
-        source: 'web',
-        userAgent: 'Mozilla/5.0 (compatible)',
-        ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`
-      }
+    // Seed studios
+    console.log('🏢 Creating studios...');
+    const createdStudios = await Studio.insertMany(studiosData);
+    console.log(`✅ Created ${createdStudios.length} studios`);
+
+    // Create admin user with hashed password
+    console.log('👤 Creating admin user...');
+    const hashedPassword = await bcrypt.hash(adminUser.password, 12);
+    const admin = await User.create({
+      ...adminUser,
+      password: hashedPassword
     });
-  }
-  
-  return bookings.sort((a, b) => a.startTime - b.startTime);
-};
+    console.log(`✅ Created admin: ${admin.email}`);
 
-// Database operations
-const createIndexes = async () => {
-  log('Creating database indexes...');
-  
-  try {
-    // User indexes
-    await User.collection.createIndex({ email: 1 }, { unique: true });
-    await User.collection.createIndex({ role: 1 });
-    await User.collection.createIndex({ verified: 1 });
-    await User.collection.createIndex({ createdAt: -1 });
+    console.log('\n🎉 Database seeding completed!');
+    console.log('\n📋 Created:');
+    console.log(`• ${createdStudios.length} studios`);
+    console.log(`• 1 admin user (${admin.email})`);
     
-    // Studio indexes
-    await Studio.collection.createIndex({ name: 1 }, { unique: true });
-    await Studio.collection.createIndex({ active: 1 });
-    await Studio.collection.createIndex({ size: 1 });
-    await Studio.collection.createIndex({ hourlyRate: 1 });
-    await Studio.collection.createIndex({ 'availability.monday.start': 1 });
-    
-    // Booking indexes
-    await Booking.collection.createIndex({ user: 1 });
-    await Booking.collection.createIndex({ studio: 1 });
-    await Booking.collection.createIndex({ startTime: 1 });
-    await Booking.collection.createIndex({ endTime: 1 });
-    await Booking.collection.createIndex({ status: 1 });
-    await Booking.collection.createIndex({ paymentStatus: 1 });
-    await Booking.collection.createIndex({ createdAt: -1 });
-    
-    // Compound indexes for common queries
-    await Booking.collection.createIndex({ studio: 1, startTime: 1, endTime: 1 });
-    await Booking.collection.createIndex({ user: 1, status: 1 });
-    await Booking.collection.createIndex({ studio: 1, status: 1 });
-    await Booking.collection.createIndex({ startTime: 1, status: 1 });
-    
-    log('Database indexes created successfully', 'success');
+    console.log('\n🔑 Login with:');
+    console.log(`Email: ${adminUser.email}`);
+    console.log(`Password: ${adminUser.password}`);
+
   } catch (error) {
-    log(`Error creating indexes: ${error.message}`, 'error');
-    throw error;
+    console.error('❌ Seeding failed:', error);
+    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    console.log('🍃 Disconnected from MongoDB');
+    process.exit(0);
   }
-};
-
-const dropCollections = async () => {
-  log('Dropping existing collections...');
-  
-  try {
-    const collections = ['users', 'studios', 'bookings'];
-    
-    for (const collection of collections) {
-      try {
-        await mongoose.connection.db.dropCollection(collection);
-        log(`Dropped collection: ${collection}`, 'success');
-      } catch (error) {
-        if (error.message.includes('ns not found')) {
-          log(`Collection ${collection} doesn't exist, skipping`, 'warning');
-        } else {
-          throw error;
-        }
-      }
-    }
-  } catch (error) {
-    log(`Error dropping collections: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-const seedUsers = async () => {
-  log('Seeding users...');
-  
-  try {
-    const users = [];
-    
-    for (const userData of sampleUsers) {
-      const hashedPassword = await hashPassword(userData.password);
-      const user = new User({
-        ...userData,
-        password: hashedPassword,
-        createdAt: new Date()
-      });
-      users.push(user);
-    }
-    
-    const createdUsers = await User.insertMany(users);
-    log(`Created ${createdUsers.length} users`, 'success');
-    
-    return createdUsers;
-  } catch (error) {
-    log(`Error seeding users: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-const seedStudios = async () => {
-  log('Seeding studios...');
-  
-  try {
-    const studios = sampleStudios.map(studio => new Studio({
-      ...studio,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }));
-    
-    const createdStudios = await Studio.insertMany(studios);
-    log(`Created ${createdStudios.length} studios`, 'success');
-    
-    return createdStudios;
-  } catch (error) {
-    log(`Error seeding studios: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-const seedBookings = async (users, studios) => {
-  log('Seeding bookings...');
-  
-  try {
-    const bookingData = generateBookings(users, studios);
-    const bookings = bookingData.map(booking => new Booking(booking));
-    
-    const createdBookings = await Booking.insertMany(bookings);
-    log(`Created ${createdBookings.length} bookings`, 'success');
-    
-    return createdBookings;
-  } catch (error) {
-    log(`Error seeding bookings: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-const validateData = async () => {
-  log('Validating seeded data...');
-  
-  try {
-    const userCount = await User.countDocuments();
-    const studioCount = await Studio.countDocuments();
-    const bookingCount = await Booking.countDocuments();
-    const adminCount = await User.countDocuments({ role: 'admin' });
-    const activeStudios = await Studio.countDocuments({ active: true });
-    const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
-    
-    log(`Validation Results:`, 'info');
-    log(`  Users: ${userCount} (${adminCount} admin)`, 'info');
-    log(`  Studios: ${studioCount} (${activeStudios} active)`, 'info');
-    log(`  Bookings: ${bookingCount} (${confirmedBookings} confirmed)`, 'info');
-    
-    // Check for data integrity
-    const orphanedBookings = await Booking.aggregate([
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userDoc'
-        }
-      },
-      {
-        $lookup: {
-          from: 'studios',
-          localField: 'studio',
-          foreignField: '_id',
-          as: 'studioDoc'
-        }
-      },
-      {
-        $match: {
-          $or: [
-            { userDoc: { $size: 0 } },
-            { studioDoc: { $size: 0 } }
-          ]
-        }
-      }
-    ]);
-    
-    if (orphanedBookings.length > 0) {
-      log(`Warning: Found ${orphanedBookings.length} orphaned bookings`, 'warning');
-    } else {
-      log('Data integrity check passed', 'success');
-    }
-    
-  } catch (error) {
-    log(`Error validating data: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-// Main seeding function
-const seedDatabase = async () => {
-  try {
-    log('Starting database seeding process...', 'info');
-    const startTime = Date.now();
-    
-    // Check database connection
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error('Database not connected');
-    }
-    
-    // Drop existing data if configured
-    if (config.dropExisting) {
-      await dropCollections();
-    }
-    
-    // Create indexes
-    if (config.createIndexes) {
-      await createIndexes();
-    }
-    
-    // Seed data in order
-    const users = await seedUsers();
-    const studios = await seedStudios();
-    const bookings = await seedBookings(users, studios);
-    
-    // Validate the seeded data
-    await validateData();
-    
-    const endTime = Date.now();
-    const duration = Math.round((endTime - startTime) / 1000);
-    
-    log(`Database seeding completed successfully in ${duration} seconds! 🎉`, 'success');
-    
-    return {
-      users: users.length,
-      studios: studios.length,
-      bookings: bookings.length,
-      duration
-    };
-    
-  } catch (error) {
-    log(`Database seeding failed: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
-export {
-  seedDatabase,
-  createIndexes,
-  dropCollections,
-  sampleUsers,
-  sampleStudios,
-  config
-};
-
-
-// Run seeding if this file is executed directly
-if (require.main === module) {
-  const runSeed = async () => {
-    try {
-      // Connect to database if not already connected
-      if (mongoose.connection.readyState === 0) {
-        const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
-        if (!mongoUri) {
-          throw new Error('MongoDB URI not found in environment variables');
-        }
-        
-        log('Connecting to MongoDB...');
-        await mongoose.connect(mongoUri, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true
-        });
-        log('Connected to MongoDB', 'success');
-      }
-      
-      await seedDatabase();
-      
-    } catch (error) {
-      log(`Seeding process failed: ${error.message}`, 'error');
-      process.exit(1);
-    } finally {
-      // Close connection if we opened it
-      if (mongoose.connection.readyState === 1) {
-        await mongoose.connection.close();
-        log('Database connection closed');
-      }
-    }
-  };
-  
-  runSeed();
 }
+
+// Run the seeder
+seedDatabase();

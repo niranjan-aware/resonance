@@ -16,11 +16,11 @@ import { useAuthStore } from '../../store/useAuthStore'
 
 const navItems = [
   { name: 'Home', path: '/' },
-  { name: 'Studios', path: '/#studios' },
+  { name: 'Studios', path: '/studios' },
   { name: 'Booking', path: '/booking' },
   { name: 'Calendar', path: '/calendar' },
-  { name: 'Gallery', path: '/#gallery' },
-  { name: 'Contact', path: '/#contact' }
+  { name: 'Gallery', path: '/gallery' },
+  { name: 'Contact', path: '/contact' }
 ]
 
 export default function Header() {

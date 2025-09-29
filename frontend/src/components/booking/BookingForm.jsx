@@ -8,8 +8,8 @@ import {
   Users, 
   Music, 
   Mic,
-  Guitar,
-  Drum,
+  // Guitar,
+  // Drum,
   Radio,
   Video,
   ArrowRight,
@@ -40,13 +40,13 @@ const sessionTypes = [
     description: 'Jam session with live musicians',
     fields: ['musicians']
   },
-  { 
-    id: 'band', 
-    name: 'Band Practice', 
-    icon: Guitar, 
-    description: 'Full band setup with all equipment',
-    fields: ['musicians', 'equipment']
-  },
+  // { 
+  //   id: 'band', 
+  //   name: 'Band Practice', 
+  //   icon: Guitar, 
+  //   description: 'Full band setup with all equipment',
+  //   fields: ['musicians', 'equipment']
+  // },
   { 
     id: 'audio-recording', 
     name: 'Audio Recording', 
@@ -68,13 +68,13 @@ const sessionTypes = [
     description: 'Live stream your performance',
     fields: ['participants']
   },
-  { 
-    id: 'show', 
-    name: 'Performance Show', 
-    icon: Drum, 
-    description: 'Live performance for audience',
-    fields: ['musicians', 'equipment']
-  }
+  // { 
+  //   id: 'show', 
+  //   name: 'Performance Show', 
+  //   icon: Drum, 
+  //   description: 'Live performance for audience',
+  //   fields: ['musicians', 'equipment']
+  // }
 ]
 
 const equipment = [
@@ -138,13 +138,80 @@ export default function BookingForm() {
     }
   }, [selectedStudio, selectedDate, fetchAvailableSlots])
 
+  // Fixed validation function
+  const validateCurrentStep = (step) => {
+    const watchedData = watch()
+    
+    switch (step) {
+      case 1:
+        return !!watchedData.sessionType
+      
+      case 2:
+        const currentType = sessionTypes.find(t => t.id === watchedData.sessionType)
+        if (!currentType) return false
+        
+        if (currentType.fields.includes('participants')) {
+          const participants = parseInt(watchedData.participants)
+          return !isNaN(participants) && participants > 0
+        }
+        
+        if (currentType.fields.includes('musicians')) {
+          const musicians = parseInt(watchedData.musicians)
+          return !isNaN(musicians) && musicians > 0
+        }
+        
+        return true
+      
+      case 3:
+        return !!selectedStudio
+      
+      case 4:
+        return !!watchedData.date && !!selectedSlot
+      
+      case 5:
+        return true
+      
+      default:
+        return false
+    }
+  }
+
   const handleNextStep = async () => {
-    const isValid = await trigger()
-    if (isValid && validateStep(currentStep)) {
-      // Update form data in store
-      const watchedData = watch()
-      updateFormData(watchedData)
+    console.log('=== DEBUGGING NEXT STEP ===')
+    console.log('Current step:', currentStep)
+    console.log('Form data:', watch())
+    console.log('Selected session type:', selectedSessionType)
+    
+    // Update form data in store first
+    const watchedData = watch()
+    updateFormData(watchedData)
+    console.log('Updated form data in store:', watchedData)
+    
+    // Check form validation
+    const isFormValid = await trigger()
+    console.log('Form validation result:', isFormValid)
+    console.log('Form errors:', errors)
+    
+    // Check step validation
+    const isStepValid = validateCurrentStep(currentStep)
+    console.log('Step validation result:', isStepValid)
+    
+    if (isFormValid && isStepValid) {
+      console.log('✅ Validation passed - proceeding to next step')
       nextStep()
+    } else {
+      console.log('❌ Validation failed:', { isFormValid, isStepValid })
+      
+      // Show specific error messages
+      if (!isFormValid) {
+        toast.error('Please fill in all required fields correctly')
+      } else if (!isStepValid) {
+        if (currentStep === 2) {
+          toast.error('Please enter valid participant/musician count')
+        } else {
+          toast.error('Please complete all step requirements')
+        }
+      }
     }
   }
 
@@ -276,9 +343,14 @@ export default function BookingForm() {
                   {...register('participants', {
                     required: 'Number of participants is required',
                     min: { value: 1, message: 'At least 1 participant required' },
-                    max: { value: 50, message: 'Maximum 50 participants allowed' }
+                    max: { value: 50, message: 'Maximum 50 participants allowed' },
+                    valueAsNumber: true
                   })}
                   error={errors.participants?.message}
+                  onChange={(e) => {
+                    updateFormData({ participants: e.target.value })
+                    console.log('Participants updated:', e.target.value)
+                  }}
                 />
               )}
 
@@ -293,9 +365,14 @@ export default function BookingForm() {
                   {...register('musicians', {
                     required: 'Number of musicians is required',
                     min: { value: 1, message: 'At least 1 musician required' },
-                    max: { value: 20, message: 'Maximum 20 musicians allowed' }
+                    max: { value: 20, message: 'Maximum 20 musicians allowed' },
+                    valueAsNumber: true
                   })}
                   error={errors.musicians?.message}
+                  onChange={(e) => {
+                    updateFormData({ musicians: e.target.value })
+                    console.log('Musicians updated:', e.target.value)
+                  }}
                 />
               )}
 
@@ -335,6 +412,7 @@ export default function BookingForm() {
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text placeholder-light-text-muted dark:placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary"
                   placeholder="Any special requirements or requests..."
+                  onChange={(e) => updateFormData({ specialRequirements: e.target.value })}
                 />
               </div>
             </div>
@@ -531,11 +609,7 @@ export default function BookingForm() {
                 type="button"
                 onClick={handleNextStep}
                 className="ml-auto"
-                disabled={
-                  (currentStep === 3 && !selectedStudio) ||
-                  (currentStep === 4 && (!selectedDate || !selectedSlot)) ||
-                  isLoading
-                }
+                disabled={isLoading}
                 loading={isLoading}
               >
                 Next
