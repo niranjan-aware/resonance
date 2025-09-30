@@ -4,13 +4,20 @@ import { Clock, Zap, CheckCircle, X, AlertCircle } from 'lucide-react'
 
 export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
   const [selectedSlots, setSelectedSlots] = useState([])
-  const [hoveredSlot, setHoveredSlot] = useState(null)
 
+  // Sync with parent's selectedSlot prop
   useEffect(() => {
-    if (selectedSlot && !Array.isArray(selectedSlot)) {
+    // If parent passes a combined slot with .slots array, use that
+    if (selectedSlot?.slots && Array.isArray(selectedSlot.slots)) {
+      setSelectedSlots(selectedSlot.slots)
+    } 
+    // If parent passes a single slot
+    else if (selectedSlot && !Array.isArray(selectedSlot)) {
       setSelectedSlots([selectedSlot])
-    } else if (Array.isArray(selectedSlot)) {
-      setSelectedSlots(selectedSlot)
+    } 
+    // If parent clears selection
+    else if (!selectedSlot) {
+      setSelectedSlots([])
     }
   }, [selectedSlot])
 
@@ -39,125 +46,113 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
     return diffHours === 1 ? '1 hour' : `${diffHours} hours`
   }
 
-  const calculateTotalDuration = (slots) => {
-    if (slots.length === 0) return '0 hours'
-    const totalHours = slots.length
-    return totalHours === 1 ? '1 hour' : `${totalHours} hours`
+  const calculateTotalDuration = (slotsList) => {
+    if (slotsList.length === 0) return '0 hours'
+    
+    const sorted = [...slotsList].sort((a, b) => a.startTime.localeCompare(b.startTime))
+    const start = new Date(`1970-01-01T${sorted[0].startTime}:00`)
+    const end = new Date(`1970-01-01T${sorted[sorted.length - 1].endTime}:00`)
+    const diffHours = (end - start) / (1000 * 60 * 60)
+    
+    return diffHours === 1 ? '1 hour' : `${diffHours} hours`
   }
 
-  const calculateTotalPrice = (slots) => {
-    return slots.reduce((sum, slot) => sum + slot.price, 0)
+  const calculateTotalPrice = (slotsList) => {
+    return slotsList.reduce((sum, slot) => sum + slot.price, 0)
   }
 
-  const isSlotSelected = (slot) => {
-    return selectedSlots.some(s => s.startTime === slot.startTime && s.endTime === slot.endTime)
-  }
-
-  const areSlotsConsecutive = (slot1, slot2) => {
-    return slot1.endTime === slot2.startTime || slot2.endTime === slot1.startTime
-  }
-
-  const canAddSlot = (slot, currentSelections) => {
-    if (currentSelections.length === 0) return true
-
-    const sortedSelections = [...currentSelections].sort((a, b) => 
-      a.startTime.localeCompare(b.startTime)
+  // Check if a specific slot is in the selected array
+  const isSlotInSelection = (slot) => {
+    return selectedSlots.some(s => 
+      s.startTime === slot.startTime && s.endTime === slot.endTime
     )
-
-    const firstSlot = sortedSelections[0]
-    const lastSlot = sortedSelections[sortedSelections.length - 1]
-
-    if (slot.endTime === firstSlot.startTime) {
-      return true
-    }
-    
-    if (slot.startTime === lastSlot.endTime) {
-      return true
-    }
-
-    return false
   }
 
-  const findContinuousRange = (selections) => {
-    if (selections.length === 0) return null
+  // Check if slots form a continuous sequence
+  const areContinuous = (slotsList) => {
+    if (slotsList.length <= 1) return true
     
-    const sorted = [...selections].sort((a, b) => a.startTime.localeCompare(b.startTime))
+    const sorted = [...slotsList].sort((a, b) => a.startTime.localeCompare(b.startTime))
     
     for (let i = 0; i < sorted.length - 1; i++) {
       if (sorted[i].endTime !== sorted[i + 1].startTime) {
-        return null
+        return false
       }
     }
     
+    return true
+  }
+
+  // Check if a slot can be added to current selection
+  const canAddSlot = (slot, currentSelections) => {
+    if (currentSelections.length === 0) return true
+    const testSelection = [...currentSelections, slot]
+    return areContinuous(testSelection)
+  }
+
+  // Create combined slot object for parent
+  const createCombinedSlot = (slotsList) => {
+    if (slotsList.length === 0) return null
+    if (slotsList.length === 1) return slotsList[0]
+    
+    const sorted = [...slotsList].sort((a, b) => a.startTime.localeCompare(b.startTime))
+    
     return {
       startTime: sorted[0].startTime,
-      endTime: sorted[sorted.length - 1].endTime
+      endTime: sorted[sorted.length - 1].endTime,
+      price: calculateTotalPrice(sorted),
+      slots: sorted, // Keep individual slots for reference
+      available: true,
+      isPeakHour: sorted.some(s => s.isPeakHour)
     }
   }
 
   const handleSlotClick = (slot) => {
-    if (slot.isBooked) return
+    if (slot.isBooked || !slot.available) return
 
-    const isCurrentlySelected = isSlotSelected(slot)
+    const isCurrentlySelected = isSlotInSelection(slot)
 
     if (isCurrentlySelected) {
+      // Deselect the slot
       const newSelections = selectedSlots.filter(s => 
         !(s.startTime === slot.startTime && s.endTime === slot.endTime)
       )
       
-      if (newSelections.length === 0) {
-        setSelectedSlots([])
-        onSlotSelect(null)
-        return
-      }
+      setSelectedSlots(newSelections)
 
-      const range = findContinuousRange(newSelections)
-      if (range) {
-        setSelectedSlots(newSelections)
-        const combinedSlot = {
-          ...newSelections[0],
-          startTime: range.startTime,
-          endTime: range.endTime,
-          slots: newSelections
-        }
+      if (newSelections.length === 0) {
+        onSlotSelect(null)
+      } else if (areContinuous(newSelections)) {
+        const combinedSlot = createCombinedSlot(newSelections)
         onSlotSelect(combinedSlot)
       } else {
+        // If deselecting breaks continuity, reset
         setSelectedSlots([])
         onSlotSelect(null)
       }
     } else {
-      if (selectedSlots.length === 0) {
-        setSelectedSlots([slot])
-        onSlotSelect(slot)
-      } else {
-        if (canAddSlot(slot, selectedSlots)) {
-          const newSelections = [...selectedSlots, slot]
-          const range = findContinuousRange(newSelections)
-          
-          if (range) {
-            setSelectedSlots(newSelections)
-            const combinedSlot = {
-              ...newSelections[0],
-              startTime: range.startTime,
-              endTime: range.endTime,
-              slots: newSelections
-            }
-            onSlotSelect(combinedSlot)
-          }
-        }
+      // Add the slot
+      const newSelections = [...selectedSlots, slot]
+      
+      if (areContinuous(newSelections)) {
+        setSelectedSlots(newSelections)
+        const combinedSlot = createCombinedSlot(newSelections)
+        onSlotSelect(combinedSlot)
       }
+      // If not continuous, ignore the click
     }
   }
 
-  const getSlotPreview = (slot) => {
-    if (selectedSlots.length === 0) return 'selectable'
-    if (isSlotSelected(slot)) return 'selected'
+  const getSlotStatus = (slot) => {
+    if (slot.isBooked || !slot.available) return 'unavailable'
+    if (isSlotInSelection(slot)) return 'selected'
+    if (selectedSlots.length === 0) return 'available'
     if (canAddSlot(slot, selectedSlots)) return 'extendable'
-    return 'disabled'
+    return 'blocked'
   }
 
-  const availableSlots = slots.filter(slot => slot.available)
-  const bookedSlots = slots.filter(slot => slot.isBooked)
+  const availableSlots = slots.filter(slot => slot.available && !slot.isBooked)
+  const bookedSlots = slots.filter(slot => slot.isBooked || !slot.available)
 
   return (
     <div className="space-y-6">
@@ -165,24 +160,24 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass p-4 rounded-xl border-2 border-light-primary dark:border-dark-primary"
+          className="glass p-4 rounded-xl border-2 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
         >
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                Multi-Hour Booking
+                {selectedSlots.length} Consecutive Hours Selected
               </h4>
-              <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                {formatTime(selectedSlots[0].startTime)} - {formatTime(selectedSlots[selectedSlots.length - 1].endTime)}
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                {formatTime(selectedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime))[0].startTime)} - {formatTime(selectedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime))[selectedSlots.length - 1].endTime)}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-light-primary dark:text-dark-primary">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 ₹{calculateTotalPrice(selectedSlots)}
               </div>
-              <div className="text-xs text-light-text-muted dark:text-dark-text-muted">
-                {calculateTotalDuration(selectedSlots)}
+              <div className="text-xs text-blue-700 dark:text-blue-300">
+                Total for {calculateTotalDuration(selectedSlots)}
               </div>
             </div>
           </div>
@@ -197,12 +192,14 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
             </h3>
             {selectedSlots.length > 0 && (
               <button
+                type="button"
                 onClick={() => {
                   setSelectedSlots([])
                   onSlotSelect(null)
                 }}
-                className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                className="text-sm text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
               >
+                <X className="w-4 h-4" />
                 Clear Selection
               </button>
             )}
@@ -210,51 +207,51 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
 
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium mb-1">Multi-Hour Booking</p>
-                <p className="text-xs">Select consecutive time slots to book multiple hours. You can only book continuous slots (e.g., 2-3 PM + 3-4 PM). Non-continuous slots must be booked separately.</p>
+                <p className="font-medium mb-1">How to Book Multiple Hours</p>
+                <ul className="text-xs space-y-1 list-disc list-inside">
+                  <li>Click any slot to start your booking</li>
+                  <li>Click consecutive slots to extend (e.g., 10-11 AM, then 11 AM-12 PM)</li>
+                  <li>All selected slots will show with blue borders</li>
+                  <li>Click a selected slot again to remove it</li>
+                </ul>
               </div>
             </div>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {availableSlots.map((slot, index) => {
-              const slotStatus = getSlotPreview(slot)
-              const isSelected = isSlotSelected(slot)
-              const isExtendable = slotStatus === 'extendable'
-              const isDisabled = slotStatus === 'disabled'
+              const status = getSlotStatus(slot)
+              const isSelected = status === 'selected'
+              const isExtendable = status === 'extendable'
+              const isBlocked = status === 'blocked'
 
               return (
-                <motion.button
+                <motion.div
                   key={`${slot.startTime}-${slot.endTime}`}
-                  type="button"
-                  whileHover={!isDisabled ? { scale: 1.02 } : {}}
-                  whileTap={!isDisabled ? { scale: 0.98 } : {}}
-                  onClick={() => handleSlotClick(slot)}
-                  onMouseEnter={() => setHoveredSlot(slot)}
-                  onMouseLeave={() => setHoveredSlot(null)}
-                  disabled={slot.isBooked || isDisabled}
+                  whileHover={!isBlocked ? { scale: 1.02 } : {}}
+                  whileTap={!isBlocked ? { scale: 0.98 } : {}}
+                  onClick={() => !isBlocked && handleSlotClick(slot)}
                   className={`
-                    relative p-4 rounded-xl border-2 text-left transition-all duration-300
+                    relative p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer
                     ${isSelected
-                      ? 'border-light-primary dark:border-dark-primary bg-light-primary/10 dark:bg-dark-primary/10'
+                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-lg ring-2 ring-blue-300 dark:ring-blue-700'
                       : isExtendable
-                      ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/10'
-                      : isDisabled
-                      ? 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/10 opacity-50 cursor-not-allowed'
-                      : 'border-light-border dark:border-dark-border hover:border-light-primary/50 dark:hover:border-dark-primary/50'
+                      ? 'border-green-500 dark:border-green-500 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30'
+                      : isBlocked
+                      ? 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/20 opacity-40 cursor-not-allowed'
+                      : 'border-light-border dark:border-dark-border hover:border-light-primary/50 dark:hover:border-dark-primary/50 hover:bg-light-surface-variant dark:hover:bg-dark-surface-variant'
                     }
-                    ${slot.isPeakHour ? 'ring-2 ring-light-accent/20 dark:ring-dark-accent/20' : ''}
-                    ${slot.isBooked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    ${slot.isPeakHour ? 'ring-1 ring-yellow-400/30 dark:ring-yellow-600/30' : ''}
                   `}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.03 }}
                 >
                   {slot.isPeakHour && (
-                    <div className="absolute -top-2 -right-2">
-                      <div className="bg-light-accent dark:bg-dark-accent text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <div className="absolute -top-2 -right-2 z-10">
+                      <div className="bg-yellow-500 dark:bg-yellow-600 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                         <Zap className="w-3 h-3" />
                         Peak
                       </div>
@@ -262,16 +259,16 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
                   )}
 
                   {isSelected && (
-                    <div className="absolute -top-2 -left-2">
-                      <div className="bg-light-primary dark:bg-dark-primary text-white rounded-full p-1">
+                    <div className="absolute -top-2 -left-2 z-10">
+                      <div className="bg-blue-500 dark:bg-blue-400 text-white rounded-full p-1 shadow-md">
                         <CheckCircle className="w-4 h-4" />
                       </div>
                     </div>
                   )}
 
-                  {isExtendable && !isSelected && (
-                    <div className="absolute -top-2 -left-2">
-                      <div className="bg-green-500 text-white rounded-full p-1">
+                  {isExtendable && (
+                    <div className="absolute -top-2 -left-2 z-10">
+                      <div className="bg-green-500 text-white rounded-full p-1 shadow-md animate-pulse">
                         <Clock className="w-4 h-4" />
                       </div>
                     </div>
@@ -280,42 +277,53 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Clock className={`w-5 h-5 ${
-                        isSelected ? 'text-light-primary dark:text-dark-primary' :
+                        isSelected ? 'text-blue-600 dark:text-blue-400' :
                         isExtendable ? 'text-green-600 dark:text-green-400' :
-                        'text-light-primary dark:text-dark-primary'
+                        isBlocked ? 'text-gray-400 dark:text-gray-600' :
+                        'text-light-text dark:text-dark-text'
                       }`} />
-                      <span className="font-semibold text-light-text dark:text-dark-text">
+                      <span className={`font-semibold ${
+                        isSelected ? 'text-blue-900 dark:text-blue-100' :
+                        isBlocked ? 'text-gray-400 dark:text-gray-600' : 
+                        'text-light-text dark:text-dark-text'
+                      }`}>
                         {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                       </span>
                     </div>
                     
-                    <div className="text-sm text-light-text-muted dark:text-dark-text-muted">
+                    <div className={`text-sm ${
+                      isSelected ? 'text-blue-700 dark:text-blue-300' :
+                      isBlocked ? 'text-gray-400 dark:text-gray-600' : 
+                      'text-light-text-muted dark:text-dark-text-muted'
+                    }`}>
                       Duration: {getDuration(slot.startTime, slot.endTime)}
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <span className={`text-lg font-bold ${
+                        isSelected ? 'text-blue-600 dark:text-blue-400' :
+                        isBlocked ? 'text-gray-400 dark:text-gray-600' :
                         slot.isPeakHour 
-                          ? 'text-light-accent dark:text-dark-accent' 
+                          ? 'text-yellow-600 dark:text-yellow-400' 
                           : 'text-light-primary dark:text-dark-primary'
                       }`}>
                         ₹{slot.price}
                       </span>
                       
-                      {isExtendable && !isSelected && (
-                        <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                      {isExtendable && (
+                        <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full font-medium animate-pulse">
                           Extend
                         </span>
                       )}
                       
-                      {slot.isPeakHour && (
-                        <span className="text-xs bg-light-accent/10 dark:bg-dark-accent/10 text-light-accent dark:text-dark-accent px-2 py-1 rounded-full">
-                          Peak
+                      {isBlocked && selectedSlots.length > 0 && (
+                        <span className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full">
+                          Not Next
                         </span>
                       )}
                     </div>
                   </div>
-                </motion.button>
+                </motion.div>
               )
             })}
           </div>
@@ -325,7 +333,7 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
       {bookedSlots.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">
-            Already Booked Slots ({bookedSlots.length})
+            Already Booked ({bookedSlots.length})
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -349,16 +357,13 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
                     </span>
                   </div>
                   
-                  <div className="text-sm text-gray-500 dark:text-gray-500">
+                  <div className="text-sm text-gray-500">
                     Duration: {getDuration(slot.startTime, slot.endTime)}
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold text-gray-500">
                       ₹{slot.price}
-                    </span>
-                    <span className="text-xs text-red-600 dark:text-red-400">
-                      Not Available
                     </span>
                   </div>
                 </div>
@@ -368,64 +373,36 @@ export default function TimeSlots({ slots, selectedSlot, onSlotSelect }) {
         </div>
       )}
 
-      {availableSlots.length === 0 && bookedSlots.length > 0 && (
-        <div className="text-center p-8 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl border border-yellow-200 dark:border-yellow-900/30">
-          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-            All Slots Booked
-          </h3>
-          <p className="text-yellow-700 dark:text-yellow-300">
-            All time slots for this date are already booked. Please try a different date.
-          </p>
-        </div>
-      )}
-
       {selectedSlots.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass p-4 rounded-xl"
+          className="glass p-5 rounded-xl border-2 border-blue-500/30 dark:border-blue-400/30 bg-blue-50/50 dark:bg-blue-900/10"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold text-light-text dark:text-dark-text">
-                Selected Time {selectedSlots.length > 1 ? 'Slots' : 'Slot'}
+            <div className="flex-1">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                {selectedSlots.length === 1 ? 'Selected Time Slot' : `${selectedSlots.length} Slots Selected`}
               </h4>
-              <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                {formatTime(selectedSlots[0].startTime)} - {formatTime(selectedSlots[selectedSlots.length - 1].endTime)}
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {formatTime(selectedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime))[0].startTime)} - {formatTime(selectedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime))[selectedSlots.length - 1].endTime)}
                 {selectedSlots.some(s => s.isPeakHour) && (
-                  <span className="ml-2 text-light-accent dark:text-dark-accent font-medium">
-                    (Includes Peak Hours)
+                  <span className="ml-2 text-yellow-600 dark:text-yellow-400 font-medium">
+                    (Peak Hours)
                   </span>
                 )}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-xl font-bold text-light-primary dark:text-dark-primary">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 ₹{calculateTotalPrice(selectedSlots)}
               </div>
-              <div className="text-xs text-light-text-muted dark:text-dark-text-muted">
-                {calculateTotalDuration(selectedSlots)}
+              <div className="text-xs text-blue-700 dark:text-blue-300">
+                Total for {calculateTotalDuration(selectedSlots)}
               </div>
             </div>
           </div>
         </motion.div>
-      )}
-
-      {slots.some(slot => slot.isPeakHour) && (
-        <div className="glass p-4 rounded-xl">
-          <div className="flex items-start gap-3">
-            <Zap className="w-5 h-5 text-light-accent dark:text-dark-accent mt-0.5" />
-            <div>
-              <h4 className="font-medium text-light-text dark:text-dark-text mb-1">
-                Peak Hours Pricing
-              </h4>
-              <p className="text-sm text-light-text-muted dark:text-dark-text-muted">
-                Peak hours are high-demand time slots with premium pricing. 
-                These typically include evenings, weekends, and popular recording times.
-              </p>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )
