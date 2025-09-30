@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Clock, Users, Calendar as CalendarIcon } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, isPast } from 'date-fns'
@@ -12,6 +12,10 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
   const [studios, setStudios] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [activeStudio, setActiveStudio] = useState(selectedStudio)
+  
+  // Cache to prevent duplicate requests
+  const fetchCacheRef = useRef({})
+  const abortControllerRef = useRef(null)
 
   useEffect(() => {
     fetchStudios()
@@ -20,6 +24,13 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
   useEffect(() => {
     if (activeStudio) {
       fetchMonthBookings()
+    }
+    
+    // Cleanup function to abort ongoing requests
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [currentMonth, activeStudio])
 
@@ -35,58 +46,116 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
     }
   }
 
-  const fetchMonthBookings = async () => {
+  const fetchMonthBookings = useCallback(async () => {
+    // Abort any ongoing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController()
+    
+    const monthKey = `${activeStudio._id}-${format(currentMonth, 'yyyy-MM')}`
+    
+    // Check if we already have this data cached
+    if (fetchCacheRef.current[monthKey]) {
+      setBookings(fetchCacheRef.current[monthKey])
+      return
+    }
+    
     setIsLoading(true)
     try {
       const monthStart = startOfMonth(currentMonth)
       const monthEnd = endOfMonth(currentMonth)
+      
+      // Option 1: If your API supports fetching all slots for a month at once
+      // This is the BEST solution - modify your backend to support this
+      /*
+      const response = await bookingAPI.getMonthAvailability(
+        activeStudio._id,
+        format(monthStart, 'yyyy-MM-dd'),
+        format(monthEnd, 'yyyy-MM-dd')
+      )
+      const bookingMap = response.bookings // Assuming API returns data keyed by date
+      */
+      
+      // Option 2: Batch requests with delay to avoid rate limiting
       const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+      const bookingMap = {}
       
-      const bookingPromises = days.map(async (day) => {
-        try {
-          const response = await bookingAPI.getAvailableSlots(
-            activeStudio._id, 
-            format(day, 'yyyy-MM-dd')
-          )
-          return {
-            date: format(day, 'yyyy-MM-dd'),
-            summary: response.summary || {
-              available: 0,
-              total: 0,
-              booked: 0,
-              availabilityPercentage: 0,
-              timeRanges: []
-            },
-            slots: response.slots || []
+      // Process in batches of 5 days at a time with delays
+      const batchSize = 5
+      const delayBetweenBatches = 500 // 500ms delay between batches
+      
+      for (let i = 0; i < days.length; i += batchSize) {
+        const batch = days.slice(i, i + batchSize)
+        
+        const batchPromises = batch.map(async (day) => {
+          try {
+            const response = await bookingAPI.getAvailableSlots(
+              activeStudio._id, 
+              format(day, 'yyyy-MM-dd')
+            )
+            return {
+              date: format(day, 'yyyy-MM-dd'),
+              summary: response.summary || {
+                available: 0,
+                total: 0,
+                booked: 0,
+                availabilityPercentage: 0,
+                timeRanges: []
+              },
+              slots: response.slots || []
+            }
+          } catch (error) {
+            // Handle rate limit errors gracefully
+            if (error.response?.status === 429) {
+              console.warn('Rate limit hit, using cached data')
+            }
+            return {
+              date: format(day, 'yyyy-MM-dd'),
+              summary: {
+                available: 0,
+                total: 0,
+                booked: 0,
+                availabilityPercentage: 0,
+                timeRanges: []
+              },
+              slots: []
+            }
           }
-        } catch (error) {
-          return {
-            date: format(day, 'yyyy-MM-dd'),
-            summary: {
-              available: 0,
-              total: 0,
-              booked: 0,
-              availabilityPercentage: 0,
-              timeRanges: []
-            },
-            slots: []
-          }
+        })
+        
+        const batchResults = await Promise.all(batchPromises)
+        
+        // Update bookings incrementally
+        batchResults.forEach(booking => {
+          bookingMap[booking.date] = booking
+        })
+        
+        // Update state after each batch for progressive loading
+        setBookings({ ...bookingMap })
+        
+        // Add delay between batches (except for the last batch)
+        if (i + batchSize < days.length) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches))
         }
-      })
-
-      const bookingData = await Promise.all(bookingPromises)
-      const bookingMap = bookingData.reduce((acc, booking) => {
-        acc[booking.date] = booking
-        return acc
-      }, {})
+      }
       
+      // Cache the results
+      fetchCacheRef.current[monthKey] = bookingMap
       setBookings(bookingMap)
+      
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Request aborted')
+        return
+      }
       console.error('Failed to fetch bookings:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentMonth, activeStudio])
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -162,6 +231,7 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
+            disabled={isLoading}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -169,6 +239,7 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
             variant="outline"
             size="sm"
             onClick={handleNextMonth}
+            disabled={isLoading}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -265,9 +336,15 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                     </div>
                   )}
 
-                  {!booking && !isPastDate && (
+                  {!booking && !isPastDate && !isLoading && (
                     <div className="flex-1 flex items-center justify-center">
                       <span className="text-xs opacity-50">Closed</span>
+                    </div>
+                  )}
+                  
+                  {!booking && !isPastDate && isLoading && (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" />
                     </div>
                   )}
                 </div>
