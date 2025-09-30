@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Users, Calendar as CalendarIcon } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, isPast } from 'date-fns'
 import { bookingAPI, studioAPI } from '../../services/booking'
 import Button from '../common/Button'
@@ -50,14 +50,26 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
           )
           return {
             date: format(day, 'yyyy-MM-dd'),
-            availableSlots: response.slots.length,
-            totalSlots: 10 // Assuming 10 total slots per day
+            summary: response.summary || {
+              available: 0,
+              total: 0,
+              booked: 0,
+              availabilityPercentage: 0,
+              timeRanges: []
+            },
+            slots: response.slots || []
           }
         } catch (error) {
           return {
             date: format(day, 'yyyy-MM-dd'),
-            availableSlots: 0,
-            totalSlots: 10
+            summary: {
+              available: 0,
+              total: 0,
+              booked: 0,
+              availabilityPercentage: 0,
+              timeRanges: []
+            },
+            slots: []
           }
         }
       })
@@ -88,17 +100,17 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
       return 'text-light-text-muted dark:text-dark-text-muted bg-light-surface-variant/50 dark:bg-dark-surface-variant/50'
     }
     
-    if (!booking) {
+    if (!booking || !booking.summary) {
       return 'text-light-text dark:text-dark-text hover:bg-light-surface-variant dark:hover:bg-dark-surface-variant'
     }
     
-    const availability = booking.availableSlots / booking.totalSlots
+    const availability = booking.summary.availabilityPercentage
     
     if (availability === 0) {
       return 'text-red-500 bg-red-50 dark:bg-red-900/20'
-    } else if (availability < 0.3) {
+    } else if (availability < 30) {
       return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20'
-    } else if (availability < 0.7) {
+    } else if (availability < 70) {
       return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
     } else {
       return 'text-green-600 bg-green-50 dark:bg-green-900/20'
@@ -120,7 +132,6 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
 
   return (
     <div className="space-y-6">
-      {/* Studio Selector */}
       <div className="flex flex-wrap gap-2">
         {studios.map((studio) => (
           <Button
@@ -134,7 +145,6 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
         ))}
       </div>
 
-      {/* Calendar Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-light-text dark:text-dark-text">
@@ -165,9 +175,7 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="glass rounded-2xl overflow-hidden">
-        {/* Weekday Headers */}
+      <div className="glass rounded-2xl overflow-hidden relative">
         <div className="grid grid-cols-7 border-b border-light-border dark:border-dark-border">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div
@@ -179,7 +187,6 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
           ))}
         </div>
 
-        {/* Calendar Days */}
         <div className="grid grid-cols-7">
           {calendarDays.map((date, index) => {
             const dateStr = format(date, 'yyyy-MM-dd')
@@ -195,7 +202,7 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.01 }}
                 className={`
-                  relative h-24 border-r border-b border-light-border dark:border-dark-border
+                  relative min-h-[120px] border-r border-b border-light-border dark:border-dark-border
                   cursor-pointer transition-all duration-200
                   ${getAvailabilityColor(date)}
                   ${isSelected ? 'ring-2 ring-light-primary dark:ring-dark-primary ring-inset' : ''}
@@ -204,12 +211,12 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                 onClick={() => handleDateClick(date)}
                 whileHover={!isPastDate ? { scale: 1.02 } : {}}
               >
-                <div className="p-2 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
+                <div className="p-3 h-full flex flex-col">
+                  <div className="flex items-start justify-between mb-2">
                     <span className={`
                       text-sm font-medium
                       ${!isSameMonth(date, currentMonth) ? 'opacity-50' : ''}
-                      ${isCurrentDay ? 'text-white bg-light-primary dark:bg-dark-primary w-6 h-6 rounded-full flex items-center justify-center text-xs' : ''}
+                      ${isCurrentDay ? 'text-white bg-light-primary dark:bg-dark-primary w-7 h-7 rounded-full flex items-center justify-center text-xs' : ''}
                     `}>
                       {format(date, 'd')}
                     </span>
@@ -219,27 +226,48 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                     )}
                   </div>
 
-                  {booking && !isPastDate && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-xs">
-                        <Clock className="w-3 h-3" />
-                        <span>{booking.availableSlots} slots</span>
+                  {booking && !isPastDate && booking.summary && (
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs">
+                          <Clock className="w-3 h-3" />
+                          <span className="font-semibold">{booking.summary.available}</span>
+                          <span className="opacity-70">/ {booking.summary.total}</span>
+                        </div>
+                        
+                        {booking.summary.timeRanges && booking.summary.timeRanges.length > 0 && (
+                          <div className="text-[10px] opacity-70 truncate">
+                            {booking.summary.timeRanges[0]}
+                            {booking.summary.timeRanges.length > 1 && ` +${booking.summary.timeRanges.length - 1}`}
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="w-full bg-light-border dark:bg-dark-border rounded-full h-1">
-                        <div 
-                          className="h-full rounded-full bg-current transition-all duration-300"
-                          style={{ 
-                            width: `${(booking.availableSlots / booking.totalSlots) * 100}%` 
-                          }}
-                        />
+                      <div className="mt-2">
+                        <div className="w-full bg-light-border dark:bg-dark-border rounded-full h-1.5">
+                          <div 
+                            className="h-full rounded-full bg-current transition-all duration-300"
+                            style={{ 
+                              width: `${booking.summary.availabilityPercentage}%` 
+                            }}
+                          />
+                        </div>
+                        <div className="text-[10px] text-center mt-1 font-medium">
+                          {booking.summary.availabilityPercentage}%
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {isPastDate && (
-                    <div className="text-xs opacity-50">
+                    <div className="text-xs opacity-50 mt-auto">
                       Past
+                    </div>
+                  )}
+
+                  {!booking && !isPastDate && (
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="text-xs opacity-50">Closed</span>
                     </div>
                   )}
                 </div>
@@ -247,34 +275,32 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
             )
           })}
         </div>
+
+        {isLoading && (
+          <div className="absolute inset-0 bg-light-bg/50 dark:bg-dark-bg/50 flex items-center justify-center rounded-2xl backdrop-blur-sm">
+            <Loading text="Loading availability..." />
+          </div>
+        )}
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">High Availability</span>
+          <span className="text-light-text-muted dark:text-dark-text-muted">High (70%+)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">Medium Availability</span>
+          <span className="text-light-text-muted dark:text-dark-text-muted">Medium (30-70%)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">Low Availability</span>
+          <span className="text-light-text-muted dark:text-dark-text-muted">Low (&lt;30%)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded" />
           <span className="text-light-text-muted dark:text-dark-text-muted">Fully Booked</span>
         </div>
       </div>
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-light-bg/50 dark:bg-dark-bg/50 flex items-center justify-center rounded-2xl">
-          <Loading text="Loading availability..." />
-        </div>
-      )}
     </div>
   )
 }

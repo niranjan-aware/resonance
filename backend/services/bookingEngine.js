@@ -4,6 +4,36 @@ import Studio from '../models/Studio.js';
 import User from '../models/User.js';
 
 export class BookingEngine {
+  static PEAK_HOURS = [
+    { start: '18:00', end: '23:00' },
+    { start: '10:00', end: '14:00' }
+  ];
+
+  static PEAK_WEEKEND_HOURS = [
+    { start: '10:00', end: '23:00' }
+  ];
+
+  static isPeakHour(startTime, endTime) {
+    const start = startTime.split(':').map(Number);
+    const end = endTime.split(':').map(Number);
+    const startMinutes = start[0] * 60 + start[1];
+    const endMinutes = end[0] * 60 + end[1];
+
+    const now = new Date();
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+
+    const peakHours = isWeekend ? this.PEAK_WEEKEND_HOURS : this.PEAK_HOURS;
+
+    return peakHours.some(peak => {
+      const peakStart = peak.start.split(':').map(Number);
+      const peakEnd = peak.end.split(':').map(Number);
+      const peakStartMinutes = peakStart[0] * 60 + peakStart[1];
+      const peakEndMinutes = peakEnd[0] * 60 + peakEnd[1];
+
+      return startMinutes >= peakStartMinutes && endMinutes <= peakEndMinutes;
+    });
+  }
+
   static async checkAvailability(studioId, date, startTime, endTime) {
     try {
       const studio = await Studio.findById(studioId);
@@ -14,7 +44,7 @@ export class BookingEngine {
       const existingBookings = await Booking.find({
         studio: studioId,
         date: new Date(date),
-        status: { $in: ['confirmed', 'checked-in'] },
+        status: { $in: ['confirmed', 'checked-in', 'pending'] },
         $or: [
           {
             'timeSlot.startTime': { $lt: endTime },
@@ -220,8 +250,10 @@ export class BookingEngine {
       });
 
       const availableSlots = [];
-      
-      for (let hour = 0; hour < 24; hour++) {
+      const studioStartHour = parseInt(studio.availability.startTime.split(':')[0]);
+      const studioEndHour = parseInt(studio.availability.endTime.split(':')[0]);
+
+      for (let hour = studioStartHour; hour < studioEndHour; hour++) {
         const slotStart = `${hour.toString().padStart(2, '0')}:00`;
         const slotEnd = `${(hour + 1).toString().padStart(2, '0')}:00`;
 
@@ -232,9 +264,7 @@ export class BookingEngine {
           );
         });
 
-        const isPeakHour = studio.availability.peakHours?.some(peak => 
-          slotStart >= peak.start && slotEnd <= peak.end
-        ) || false;
+        const isPeakHour = this.isPeakHour(slotStart, slotEnd);
 
         const slotPrice = studio.calculatePrice(date, slotStart, slotEnd);
 
@@ -252,6 +282,36 @@ export class BookingEngine {
     } catch (error) {
       throw error;
     }
+  }
+
+  static getAvailableTimeRanges(slots) {
+    const availableSlots = slots.filter(s => s.available).sort((a, b) => {
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    if (availableSlots.length === 0) return [];
+
+    const ranges = [];
+    let currentRange = {
+      start: availableSlots[0].startTime,
+      end: availableSlots[0].endTime
+    };
+
+    for (let i = 1; i < availableSlots.length; i++) {
+      if (availableSlots[i].startTime === currentRange.end) {
+        currentRange.end = availableSlots[i].endTime;
+      } else {
+        ranges.push({ ...currentRange });
+        currentRange = {
+          start: availableSlots[i].startTime,
+          end: availableSlots[i].endTime
+        };
+      }
+    }
+
+    ranges.push(currentRange);
+
+    return ranges.map(r => `${r.start} - ${r.end}`);
   }
 
   static async createBookingLock(key, userId, ttl = 300) {

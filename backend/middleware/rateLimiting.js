@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 
 export const rateLimitConfig = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 10000,
   max: 100,
   message: {
     success: false,
@@ -12,7 +12,7 @@ export const rateLimitConfig = rateLimit({
 });
 
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 10000,
   max: 5,
   skipSuccessfulRequests: true,
   message: {
@@ -22,7 +22,7 @@ export const authLimiter = rateLimit({
 });
 
 export const bookingLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: 60 * 10000,
   max: 3,
   message: {
     success: false,
@@ -31,7 +31,7 @@ export const bookingLimiter = rateLimit({
 });
 
 export const otpLimiter = rateLimit({
-  windowMs: 60 * 1000000,
+  windowMs: 60 * 10000,
   max: 1,
   message: {
     success: false,

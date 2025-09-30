@@ -1,9 +1,8 @@
-// backend/controllers/contactController.js
 import NotificationService from '../services/notificationService.js';
 
 export const sendContactMessage = async (req, res) => {
   try {
-    const { name, email, phone, subject, message } = req.body;
+    const { name, email, phone, subject, message, preferredContact } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -12,39 +11,18 @@ export const sendContactMessage = async (req, res) => {
       });
     }
 
-    const emailData = {
-      userName: name,
-      userEmail: email,
-      userPhone: phone || 'Not provided',
+    const contactData = {
+      name,
+      email,
+      phone: phone || 'Not provided',
       subject: subject || 'General Inquiry',
-      message: message,
-      timestamp: new Date().toLocaleString('en-IN', {
-        dateStyle: 'full',
-        timeStyle: 'short'
-      })
+      message,
+      preferredContact: preferredContact || 'email'
     };
 
-    const adminEmails = process.env.ADMIN_EMAILS?.split(',') || ['admin@resonancestudio.com'];
-    
-    const emailPromises = adminEmails.map(adminEmail =>
-      NotificationService.sendEmail(
-        adminEmail,
-        `New Contact Form Submission - ${subject || 'General Inquiry'}`,
-        'contactFormAdmin',
-        emailData
-      )
-    );
+    await NotificationService.sendContactFormNotification(contactData);
 
-    await Promise.all(emailPromises);
-
-    await NotificationService.sendEmail(
-      email,
-      'Thank you for contacting Resonance Studio',
-      'contactFormUser',
-      emailData
-    );
-
-    console.log(`✅ Contact form email sent from ${email}`);
+    console.log(`✅ Contact form processed for ${email}`);
 
     res.status(200).json({
       success: true,

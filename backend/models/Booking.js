@@ -133,9 +133,10 @@ const bookingSchema = new mongoose.Schema({
   },
   notifications: {
     confirmationSent: { type: Boolean, default: false },
-    reminder2Days: { type: Boolean, default: false },
-    reminder1Day: { type: Boolean, default: false },
     reminder3Hours: { type: Boolean, default: false },
+    reminder6Hours: { type: Boolean, default: false },
+    reminder12Hours: { type: Boolean, default: false },
+    reminder24Hours: { type: Boolean, default: false },
     completionSent: { type: Boolean, default: false }
   },
   feedback: {
@@ -205,7 +206,7 @@ bookingSchema.virtual('canReschedule').get(function() {
 });
 
 bookingSchema.pre('save', function(next) {
-  if (this.isNew) {
+  if (this.isNew && !this.bookingId) {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substr(2, 4).toUpperCase();
     this.bookingId = `RES-${timestamp}-${random}`;
@@ -242,5 +243,6 @@ bookingSchema.index({ user: 1, date: -1 });
 bookingSchema.index({ studio: 1, date: 1, 'timeSlot.startTime': 1 });
 bookingSchema.index({ bookingId: 1 });
 bookingSchema.index({ status: 1, date: 1 });
+bookingSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Booking', bookingSchema);

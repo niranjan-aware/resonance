@@ -1,13 +1,17 @@
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { emailTemplates } from '../utils/emailTemplates.js';
+import Booking from '../models/Booking.js';
+import cron from 'node-cron';
 
 class NotificationService {
   constructor() {
     this.emailTransporter = null;
     this.twilioClient = null;
+    this.adminEmail = 'niroba.aware.26@gmail.com';
     this.initializeEmail();
     this.initializeTwilio();
+    this.startScheduledJobs();
   }
 
   initializeEmail() {
@@ -57,6 +61,22 @@ class NotificationService {
     } catch (error) {
       console.error('❌ Failed to initialize Twilio service:', error.message);
     }
+  }
+
+  startScheduledJobs() {
+    cron.schedule('0 * * * *', () => {
+      this.sendHourlyAdminDigest();
+    });
+
+    cron.schedule('0 20 * * *', () => {
+      this.sendTomorrowBookingsToAdmin();
+    });
+
+    cron.schedule('*/15 * * * *', () => {
+      this.checkAndSendReminders();
+    });
+
+    console.log('✅ Scheduled notification jobs started');
   }
 
   async sendEmail(to, subject, template, data) {
@@ -143,6 +163,46 @@ class NotificationService {
     }
   }
 
+  async sendBookingCreatedNotification(booking) {
+    try {
+      const user = booking.user;
+      const studio = booking.studio;
+
+      const emailData = {
+        userName: user.name,
+        bookingId: booking.bookingId,
+        studioName: studio.name,
+        date: new Date(booking.date).toLocaleDateString('en-IN'),
+        startTime: booking.timeSlot.startTime,
+        endTime: booking.timeSlot.endTime,
+        sessionType: booking.sessionType,
+        totalAmount: booking.pricing.totalAmount,
+        status: 'pending',
+        studioImage: studio.images?.[0]?.url
+      };
+
+      if (user.preferences?.notifications?.email !== false) {
+        await this.sendEmail(
+          user.email,
+          `Booking Created - ${booking.bookingId}`,
+          'bookingCreated',
+          emailData
+        );
+      }
+
+      const smsMessage = `Resonance Studio: Booking ${booking.bookingId} created for ${studio.name} on ${emailData.date} at ${booking.timeSlot.startTime}. Total: ₹${booking.pricing.totalAmount}. Please complete payment to confirm.`;
+
+      if (user.preferences?.notifications?.sms !== false) {
+        await this.sendSMS(user.phone, smsMessage);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Booking created notification error:', error.message);
+      return false;
+    }
+  }
+
   async sendBookingConfirmation(booking) {
     try {
       const user = booking.user;
@@ -152,12 +212,12 @@ class NotificationService {
         userName: user.name,
         bookingId: booking.bookingId,
         studioName: studio.name,
-        date: booking.date.toLocaleDateString('en-IN'),
+        date: new Date(booking.date).toLocaleDateString('en-IN'),
         startTime: booking.timeSlot.startTime,
         endTime: booking.timeSlot.endTime,
         sessionType: booking.sessionType,
         totalAmount: booking.pricing.totalAmount,
-        studioImage: studio.images[0]?.url
+        studioImage: studio.images?.[0]?.url
       };
 
       if (user.preferences?.notifications?.email !== false) {
@@ -192,16 +252,17 @@ class NotificationService {
       const studio = booking.studio;
 
       const timeMessages = {
-        '2days': '2 days',
-        '1day': '1 day',
-        '3hours': '3 hours'
+        '3hours': '3 hours',
+        '6hours': '6 hours',
+        '12hours': '12 hours',
+        '24hours': '24 hours'
       };
 
       const emailData = {
         userName: user.name,
         bookingId: booking.bookingId,
         studioName: studio.name,
-        date: booking.date.toLocaleDateString('en-IN'),
+        date: new Date(booking.date).toLocaleDateString('en-IN'),
         startTime: booking.timeSlot.startTime,
         timeUntil: timeMessages[type]
       };
@@ -237,7 +298,7 @@ class NotificationService {
         userName: user.name,
         bookingId: booking.bookingId,
         studioName: studio.name,
-        date: booking.date.toLocaleDateString('en-IN'),
+        date: new Date(booking.date).toLocaleDateString('en-IN'),
         startTime: booking.timeSlot.startTime,
         refundAmount: booking.payment?.refundAmount || 0
       };
@@ -266,8 +327,6 @@ class NotificationService {
 
   async sendAdminNotification(booking, type) {
     try {
-      const adminEmails = process.env.ADMIN_EMAILS?.split(',') || ['admin@resonancestudio.com'];
-      
       const subject = {
         'new_booking': `New Booking Received - ${booking.bookingId}`,
         'cancelled_booking': `Booking Cancelled - ${booking.bookingId}`,
@@ -278,8 +337,9 @@ class NotificationService {
         bookingId: booking.bookingId,
         userName: booking.user?.name || 'Unknown',
         userPhone: booking.user?.phone || 'N/A',
+        userEmail: booking.user?.email || 'N/A',
         studioName: booking.studio?.name || 'Unknown',
-        date: booking.date.toLocaleDateString('en-IN'),
+        date: new Date(booking.date).toLocaleDateString('en-IN'),
         startTime: booking.timeSlot.startTime,
         endTime: booking.timeSlot.endTime,
         sessionType: booking.sessionType,
@@ -287,14 +347,187 @@ class NotificationService {
         status: booking.status
       };
 
-      for (const email of adminEmails) {
-        await this.sendEmail(email, subject[type], 'adminNotification', emailData);
-      }
+      await this.sendEmail(this.adminEmail, subject[type], 'adminNotification', emailData);
 
       return true;
     } catch (error) {
       console.error('❌ Admin notification error:', error.message);
       return false;
+    }
+  }
+
+  async sendContactFormNotification(contactData) {
+    try {
+      const emailData = {
+        userName: contactData.name,
+        userEmail: contactData.email,
+        userPhone: contactData.phone || 'Not provided',
+        subject: contactData.subject || 'General Inquiry',
+        message: contactData.message,
+        preferredContact: contactData.preferredContact || 'email',
+        timestamp: new Date().toLocaleString('en-IN', {
+          dateStyle: 'full',
+          timeStyle: 'short'
+        })
+      };
+
+      await this.sendEmail(
+        this.adminEmail,
+        `New Contact Form Submission - ${contactData.subject || 'General Inquiry'}`,
+        'contactFormAdmin',
+        emailData
+      );
+
+      await this.sendEmail(
+        contactData.email,
+        'Thank you for contacting Resonance Studio',
+        'contactFormUser',
+        emailData
+      );
+
+      console.log(`✅ Contact form notifications sent for ${contactData.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Contact form notification error:', error.message);
+      return false;
+    }
+  }
+
+  async checkAndSendReminders() {
+    try {
+      const now = new Date();
+      const bookings = await Booking.find({
+        status: { $in: ['confirmed', 'checked-in'] },
+        date: { $gte: now }
+      }).populate('user studio');
+
+      for (const booking of bookings) {
+        const bookingDateTime = new Date(booking.date);
+        const [hours, minutes] = booking.timeSlot.startTime.split(':');
+        bookingDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+        const hoursUntil = (bookingDateTime - now) / (1000 * 60 * 60);
+
+        if (hoursUntil <= 3 && hoursUntil > 2.5 && !booking.notifications.reminder3Hours) {
+          await this.sendBookingReminder(booking, '3hours');
+          await Booking.findByIdAndUpdate(booking._id, { 'notifications.reminder3Hours': true });
+        } else if (hoursUntil <= 6 && hoursUntil > 5.5 && !booking.notifications.reminder6Hours) {
+          await this.sendBookingReminder(booking, '6hours');
+          await Booking.findByIdAndUpdate(booking._id, { 'notifications.reminder6Hours': true });
+        } else if (hoursUntil <= 12 && hoursUntil > 11.5 && !booking.notifications.reminder12Hours) {
+          await this.sendBookingReminder(booking, '12hours');
+          await Booking.findByIdAndUpdate(booking._id, { 'notifications.reminder12Hours': true });
+        } else if (hoursUntil <= 24 && hoursUntil > 23.5 && !booking.notifications.reminder24Hours) {
+          await this.sendBookingReminder(booking, '24hours');
+          await Booking.findByIdAndUpdate(booking._id, { 'notifications.reminder24Hours': true });
+        }
+      }
+
+      console.log('✅ Reminder check completed');
+    } catch (error) {
+      console.error('❌ Reminder check error:', error.message);
+    }
+  }
+
+  async sendHourlyAdminDigest() {
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      
+      const newBookings = await Booking.find({
+        createdAt: { $gte: oneHourAgo }
+      }).populate('user studio');
+
+      if (newBookings.length === 0) {
+        console.log('No new bookings in the last hour');
+        return;
+      }
+
+      const emailData = {
+        period: 'Last Hour',
+        bookings: newBookings.map(b => ({
+          bookingId: b.bookingId,
+          userName: b.user?.name || 'Unknown',
+          userEmail: b.user?.email || 'N/A',
+          userPhone: b.user?.phone || 'N/A',
+          studioName: b.studio?.name || 'Unknown',
+          date: new Date(b.date).toLocaleDateString('en-IN'),
+          startTime: b.timeSlot.startTime,
+          endTime: b.timeSlot.endTime,
+          sessionType: b.sessionType,
+          totalAmount: b.pricing.totalAmount,
+          status: b.status,
+          createdAt: b.createdAt.toLocaleString('en-IN')
+        })),
+        count: newBookings.length,
+        totalRevenue: newBookings.reduce((sum, b) => sum + b.pricing.totalAmount, 0)
+      };
+
+      await this.sendEmail(
+        this.adminEmail,
+        `Hourly Booking Digest - ${newBookings.length} New Bookings`,
+        'hourlyDigest',
+        emailData
+      );
+
+      console.log(`✅ Hourly admin digest sent with ${newBookings.length} bookings`);
+    } catch (error) {
+      console.error('❌ Hourly digest error:', error.message);
+    }
+  }
+
+  async sendTomorrowBookingsToAdmin() {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+
+      const tomorrowBookings = await Booking.find({
+        date: { $gte: tomorrow, $lt: dayAfter },
+        status: { $in: ['confirmed', 'checked-in'] }
+      }).populate('user studio').sort({ 'timeSlot.startTime': 1 });
+
+      if (tomorrowBookings.length === 0) {
+        console.log('No bookings for tomorrow');
+        return;
+      }
+
+      const emailData = {
+        date: tomorrow.toLocaleDateString('en-IN', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        bookings: tomorrowBookings.map(b => ({
+          bookingId: b.bookingId,
+          userName: b.user?.name || 'Unknown',
+          userEmail: b.user?.email || 'N/A',
+          userPhone: b.user?.phone || 'N/A',
+          studioName: b.studio?.name || 'Unknown',
+          startTime: b.timeSlot.startTime,
+          endTime: b.timeSlot.endTime,
+          sessionType: b.sessionType,
+          totalAmount: b.pricing.totalAmount,
+          status: b.status,
+          participants: b.sessionDetails?.participants || b.sessionDetails?.musicians || 'N/A'
+        })),
+        count: tomorrowBookings.length,
+        totalRevenue: tomorrowBookings.reduce((sum, b) => sum + b.pricing.totalAmount, 0)
+      };
+
+      await this.sendEmail(
+        this.adminEmail,
+        `Tomorrow's Bookings - ${tomorrowBookings.length} Sessions Scheduled`,
+        'tomorrowBookings',
+        emailData
+      );
+
+      console.log(`✅ Tomorrow's bookings sent to admin: ${tomorrowBookings.length} bookings`);
+    } catch (error) {
+      console.error('❌ Tomorrow bookings error:', error.message);
     }
   }
 }

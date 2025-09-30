@@ -1,5 +1,69 @@
-// backend/utils/emailTemplates.js
 export const emailTemplates = {
+  bookingCreated: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Created</title>
+        <style>
+            body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white; text-align: center; padding: 30px; border-radius: 10px 10px 0 0; }
+            .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+            .booking-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0; }
+            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+            .detail-label { font-weight: 600; color: #64748b; }
+            .detail-value { font-weight: 500; color: #1e293b; }
+            .amount { font-size: 24px; font-weight: bold; color: #F59E0B; text-align: center; margin: 20px 0; }
+            .warning { background: #FEF3C7; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #F59E0B; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📝 Booking Created!</h1>
+                <p>Complete payment to confirm your session</p>
+            </div>
+            <div class="content">
+                <p>Hello ${data.userName},</p>
+                <p>Your booking has been created successfully. Please complete the payment to confirm your session.</p>
+                
+                <div class="booking-card">
+                    <div class="detail-row">
+                        <span class="detail-label">Booking ID:</span>
+                        <span class="detail-value">${data.bookingId}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Studio:</span>
+                        <span class="detail-value">${data.studioName}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">${data.date}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Time:</span>
+                        <span class="detail-value">${data.startTime} - ${data.endTime}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value" style="color: #F59E0B; font-weight: bold;">PENDING PAYMENT</span>
+                    </div>
+                </div>
+                
+                <div class="amount">Total: ₹${data.totalAmount}</div>
+                
+                <div class="warning">
+                    <p><strong>⚠️ Important:</strong></p>
+                    <p>This booking is not confirmed yet. Please complete the payment within 24 hours to confirm your session.</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `,
+
   bookingConfirmation: (data) => `
     <!DOCTYPE html>
     <html>
@@ -17,8 +81,6 @@ export const emailTemplates = {
             .detail-label { font-weight: 600; color: #64748b; }
             .detail-value { font-weight: 500; color: #1e293b; }
             .amount { font-size: 24px; font-weight: bold; color: #2563EB; text-align: center; margin: 20px 0; }
-            .button { display: inline-block; background: #2563EB; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 10px 0; }
-            .footer { text-align: center; color: #64748b; font-size: 14px; margin-top: 30px; }
         </style>
     </head>
     <body>
@@ -56,10 +118,6 @@ export const emailTemplates = {
                 
                 <div class="amount">Total: ₹${data.totalAmount}</div>
                 
-                <div style="text-align: center;">
-                    <a href="${process.env.FRONTEND_URL}/booking/${data.bookingId}" class="button">View Booking Details</a>
-                </div>
-                
                 <p><strong>Important Notes:</strong></p>
                 <ul>
                     <li>Please arrive 15 minutes before your session</li>
@@ -67,12 +125,6 @@ export const emailTemplates = {
                     <li>Cancellations must be made 24 hours in advance</li>
                     <li>Contact us at +91-98765 43210 for any queries</li>
                 </ul>
-                
-                <div class="footer">
-                    <p>Resonance Studio - Sinhgad Road<br>
-                    📧 info@resonancestudio.com | 📞 +91-98765 43210<br>
-                    <a href="${process.env.FRONTEND_URL}">Visit our website</a></p>
-                </div>
             </div>
         </div>
     </body>
@@ -117,8 +169,6 @@ export const emailTemplates = {
                     <li>Bring your ID and confirmation</li>
                     <li>Check traffic conditions</li>
                 </ul>
-                
-                <p>Looking forward to seeing you soon!</p>
             </div>
         </div>
     </body>
@@ -163,8 +213,6 @@ export const emailTemplates = {
                     <p>Your refund will be processed within 5-7 business days to your original payment method.</p>
                 </div>
                 ` : ''}
-                
-                <p>We're sorry to see you go! Feel free to book another session anytime.</p>
             </div>
         </div>
     </body>
@@ -204,6 +252,10 @@ export const emailTemplates = {
                         <div class="value">${data.userName}</div>
                     </div>
                     <div class="info-item">
+                        <div class="label">Email</div>
+                        <div class="value">${data.userEmail}</div>
+                    </div>
+                    <div class="info-item">
                         <div class="label">Phone</div>
                         <div class="value">${data.userPhone}</div>
                     </div>
@@ -227,6 +279,139 @@ export const emailTemplates = {
                         <div class="label">Status</div>
                         <div class="value">${data.status}</div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `,
+
+  hourlyDigest: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Hourly Booking Digest</title>
+        <style>
+            body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white; text-align: center; padding: 30px; border-radius: 10px 10px 0 0; }
+            .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+            .summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .summary-item { text-align: center; padding: 15px; background: #f1f5f9; border-radius: 6px; }
+            .summary-value { font-size: 32px; font-weight: bold; color: #8B5CF6; }
+            .summary-label { font-size: 14px; color: #64748b; margin-top: 5px; }
+            .booking-list { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .booking-item { padding: 15px; border-left: 4px solid #8B5CF6; background: #f8fafc; margin: 10px 0; border-radius: 4px; }
+            .booking-header { font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+            .booking-details { font-size: 14px; color: #64748b; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📊 Hourly Booking Digest</h1>
+                <p>${data.period}</p>
+            </div>
+            <div class="content">
+                <div class="summary">
+                    <div class="summary-item">
+                        <div class="summary-value">${data.count}</div>
+                        <div class="summary-label">New Bookings</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">₹${data.totalRevenue}</div>
+                        <div class="summary-label">Total Revenue</div>
+                    </div>
+                </div>
+
+                <div class="booking-list">
+                    <h3 style="margin-top: 0;">Booking Details</h3>
+                    ${data.bookings.map(booking => `
+                        <div class="booking-item">
+                            <div class="booking-header">
+                                ${booking.bookingId} - ${booking.userName}
+                            </div>
+                            <div class="booking-details">
+                                <p><strong>Studio:</strong> ${booking.studioName} | <strong>Date:</strong> ${booking.date} at ${booking.startTime} - ${booking.endTime}</p>
+                                <p><strong>Contact:</strong> ${booking.userEmail} | ${booking.userPhone}</p>
+                                <p><strong>Session:</strong> ${booking.sessionType} | <strong>Amount:</strong> ₹${booking.totalAmount} | <strong>Status:</strong> ${booking.status}</p>
+                                <p><strong>Created:</strong> ${booking.createdAt}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `,
+
+  tomorrowBookings: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Tomorrow's Bookings</title>
+        <style>
+            body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #10B981, #34D399); color: white; text-align: center; padding: 30px; border-radius: 10px 10px 0 0; }
+            .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+            .summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .summary-item { text-align: center; padding: 15px; background: #f1f5f9; border-radius: 6px; }
+            .summary-value { font-size: 32px; font-weight: bold; color: #10B981; }
+            .summary-label { font-size: 14px; color: #64748b; margin-top: 5px; }
+            .booking-list { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .booking-item { padding: 15px; border-left: 4px solid #10B981; background: #f8fafc; margin: 10px 0; border-radius: 4px; }
+            .booking-header { font-weight: 600; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+            .booking-time { background: #10B981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; }
+            .booking-details { font-size: 14px; color: #64748b; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📅 Tomorrow's Schedule</h1>
+                <p>${data.date}</p>
+            </div>
+            <div class="content">
+                <div class="summary">
+                    <div class="summary-item">
+                        <div class="summary-value">${data.count}</div>
+                        <div class="summary-label">Total Sessions</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">₹${data.totalRevenue}</div>
+                        <div class="summary-label">Expected Revenue</div>
+                    </div>
+                </div>
+
+                <div class="booking-list">
+                    <h3 style="margin-top: 0;">Session Schedule</h3>
+                    ${data.bookings.map(booking => `
+                        <div class="booking-item">
+                            <div class="booking-header">
+                                <span>${booking.bookingId} - ${booking.userName}</span>
+                                <span class="booking-time">${booking.startTime} - ${booking.endTime}</span>
+                            </div>
+                            <div class="booking-details">
+                                <p><strong>Studio:</strong> ${booking.studioName} | <strong>Session:</strong> ${booking.sessionType}</p>
+                                <p><strong>Contact:</strong> ${booking.userEmail} | ${booking.userPhone}</p>
+                                <p><strong>Participants:</strong> ${booking.participants} | <strong>Amount:</strong> ₹${booking.totalAmount} | <strong>Status:</strong> ${booking.status}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: #FEF3C7; padding: 15px; border-radius: 6px; margin-top: 20px; border-left: 4px solid #F59E0B;">
+                    <p style="margin: 0;"><strong>⚠️ Preparation Checklist:</strong></p>
+                    <ul style="margin: 10px 0;">
+                        <li>Ensure all studios are cleaned and ready</li>
+                        <li>Verify equipment is functional</li>
+                        <li>Confirm staff availability for all sessions</li>
+                        <li>Review special requirements from customers</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -276,13 +461,13 @@ export const emailTemplates = {
                 </div>
 
                 <div class="info-box">
-                    <span class="label">Subject / Inquiry Type</span>
+                    <span class="label">Subject</span>
                     <div class="value">${data.subject}</div>
                 </div>
 
                 <div class="info-box">
-                    <span class="label">Preferred Contact Method</span>
-                    <div class="value" style="text-transform: capitalize;">${data.preferredContact || 'Email'}</div>
+                    <span class="label">Preferred Contact</span>
+                    <div class="value" style="text-transform: capitalize;">${data.preferredContact}</div>
                 </div>
 
                 <div class="info-box">
@@ -300,10 +485,6 @@ export const emailTemplates = {
                         📧 Reply to ${data.userName}
                     </a>
                 </center>
-
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px;">
-                    <p>This is an automated notification from Resonance Studio contact form.</p>
-                </div>
             </div>
         </div>
     </body>
@@ -324,8 +505,6 @@ export const emailTemplates = {
             .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
             .highlight-box { background: #EFF6FF; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563EB; }
             .message-copy { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; white-space: pre-wrap; line-height: 1.6; }
-            .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
-            .link-button { display: inline-block; color: #2563EB; text-decoration: none; margin: 5px 10px; }
         </style>
     </head>
     <body>
@@ -343,7 +522,7 @@ export const emailTemplates = {
                     <h3 style="margin-top: 0; color: #2563EB;">⏱️ What Happens Next?</h3>
                     <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
                         <li>Our team will review your message within <strong>2-4 business hours</strong></li>
-                        <li>We'll respond via your preferred method: <strong style="text-transform: capitalize;">${data.preferredContact || 'Email'}</strong></li>
+                        <li>We'll respond via your preferred method: <strong style="text-transform: capitalize;">${data.preferredContact}</strong></li>
                         <li>For urgent inquiries, call us at <a href="tel:+919876543210" style="color: #2563EB;">+91 98765 43210</a></li>
                     </ul>
                 </div>
@@ -351,38 +530,6 @@ export const emailTemplates = {
                 <div style="margin: 25px 0;">
                     <p style="margin-bottom: 10px;"><strong>📝 Your Message:</strong></p>
                     <div class="message-copy">${data.message}</div>
-                </div>
-
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                    <h4 style="color: #1e293b; margin-bottom: 15px;">🎵 Meanwhile, you can:</h4>
-                    <ul style="color: #64748b; line-height: 1.8;">
-                        <li>
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/booking" class="link-button">📅 Book a Studio Session</a>
-                        </li>
-                        <li>
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/studios" class="link-button">🎸 Browse Our Studios</a>
-                        </li>
-                        <li>
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/calendar" class="link-button">📆 Check Availability</a>
-                        </li>
-                        <li>
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/pricing" class="link-button">💰 View Pricing Plans</a>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="footer">
-                    <p><strong>Resonance Studio</strong><br>
-                    Sinhgad Road, Pune, Maharashtra 411041<br>
-                    📧 <a href="mailto:hello@resonancestudio.com" style="color: #2563EB;">hello@resonancestudio.com</a> | 
-                    📞 <a href="tel:+919876543210" style="color: #2563EB;">+91 98765 43210</a><br>
-                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="color: #2563EB;">Visit our website</a></p>
-                    
-                    <div style="margin-top: 15px;">
-                        <a href="https://instagram.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">Instagram</a>
-                        <a href="https://facebook.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">Facebook</a>
-                        <a href="https://youtube.com/resonancestudio" style="margin: 0 8px; color: #64748b; text-decoration: none;">YouTube</a>
-                    </div>
                 </div>
             </div>
         </div>
