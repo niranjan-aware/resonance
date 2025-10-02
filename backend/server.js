@@ -45,6 +45,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
+    // allow requests with no origin (like Postman)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
@@ -86,10 +87,7 @@ io.on('connection', (socket) => {
 //   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 // });
 
-app.use(cors({
-  origin: ["http://localhost:5173","https://resonance-niranjan.netlify.app/"], 
-  credentials: true // if you need cookies/auth headers
-}));
+
 
 app.use((error, req, res, next) => {
   console.error(error.stack);
