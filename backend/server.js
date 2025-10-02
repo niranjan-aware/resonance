@@ -38,10 +38,20 @@ connectDB();
 
 app.use(helmet());
 app.use(morgan('combined'));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://resonance-niranjan.netlify.app"
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(rateLimitConfig);
