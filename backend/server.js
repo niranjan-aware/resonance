@@ -40,7 +40,7 @@ app.use(helmet());
 app.use(morgan('combined'));
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://resonance-niranjan.netlify.app"
+  "https://resonance-studio.netlify.app/"
 ];
 
 app.use(cors({
