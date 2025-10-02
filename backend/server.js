@@ -2,7 +2,7 @@
 import 'dotenv/config'; // loads .env before any other imports
 
 import express from 'express';
-import path from "path";
+// import path from "path";
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -90,15 +90,15 @@ app.use((error, req, res, next) => {
   });
 });
 
-const __dirname = path.resolve();
+// const __dirname = path.resolve();
 
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// if (process.env.NODE_ENV === "production") {
+//   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  app.get("/{*any}", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
+//   app.get("/{*any}", (req, res) => {
+//     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+//   });
+// }
 
 
 const PORT = process.env.PORT || 5000;
