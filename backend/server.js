@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
 // });
 
 app.use(cors({
-  origin: ["*","https://resonance-niranjan.netlify.app/"], // your React app URL
+  origin: ["http://localhost:5173","https://resonance-niranjan.netlify.app/"], 
   credentials: true // if you need cookies/auth headers
 }));
 
