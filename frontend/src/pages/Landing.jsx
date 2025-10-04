@@ -10,7 +10,8 @@ import {
   Play,
   CheckCircle,
   Phone,
-  Mail
+  Mail,
+  Calendar
 } from 'lucide-react'
 import HeroSection from '../components/landing/HeroSection'
 import StudioShowcase from '../components/landing/StudioShowcase'
@@ -74,50 +75,53 @@ export default function Landing() {
     <div className="min-h-screen">
       <HeroSection />
       
-      <section className="py-20 bg-light-surface dark:bg-dark-surface">
-        <div className="max-width-container">
+      {/* Why Choose Section */}
+      <section className="py-8 md:py-12 tablet:py-16 lg:py-20 bg-light-surface dark:bg-dark-surface">
+        <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-8 md:mb-12 tablet:mb-16"
           >
-            <h2 className="text-display-md font-bold text-light-text dark:text-dark-text mb-6">
+            <h2 className="text-2xl md:text-3xl tablet:text-4xl lg:text-5xl font-bold text-light-text dark:text-dark-text mb-3 md:mb-4 tablet:mb-6">
               Why Choose Resonance?
             </h2>
-            <p className="text-lg text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto">
+            <p className="text-sm md:text-base tablet:text-lg text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto px-2">
               Experience music creation in our world-class studios with professional equipment and perfect acoustics
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 tablet:gap-8 mb-8 md:mb-12 tablet:mb-20">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="glass rounded-2xl p-8 text-center group hover:scale-105 transition-all duration-300"
+                className="glass rounded-xl md:rounded-2xl p-4 md:p-6 tablet:p-8 text-center group hover:scale-105 transition-all duration-300"
               >
-                <stat.icon className="w-12 h-12 mx-auto mb-4 text-light-primary dark:text-dark-primary group-hover:scale-110 transition-transform" />
-                <div className="text-4xl font-bold text-light-text dark:text-dark-text mb-2">
+                <stat.icon className="w-8 h-8 md:w-10 md:h-10 tablet:w-12 tablet:h-12 mx-auto mb-2 md:mb-3 tablet:mb-4 text-light-primary dark:text-dark-primary group-hover:scale-110 transition-transform" />
+                <div className="text-2xl md:text-3xl tablet:text-4xl font-bold text-light-text dark:text-dark-text mb-1 md:mb-2">
                   {stat.number}
                 </div>
-                <div className="text-light-text-muted dark:text-dark-text-muted">
+                <div className="text-xs md:text-sm text-light-text-muted dark:text-dark-text-muted">
                   {stat.label}
                 </div>
               </motion.div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 tablet:gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="glass rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300"
+                className="glass rounded-xl md:rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300"
               >
                 <div className="aspect-video overflow-hidden">
                   <img 
@@ -126,11 +130,11 @@ export default function Landing() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-3">
+                <div className="p-4 md:p-6">
+                  <h3 className="text-base md:text-lg tablet:text-xl font-semibold text-light-text dark:text-dark-text mb-2 md:mb-3">
                     {feature.title}
                   </h3>
-                  <p className="text-light-text-muted dark:text-dark-text-muted">
+                  <p className="text-sm md:text-base text-light-text-muted dark:text-dark-text-muted">
                     {feature.description}
                   </p>
                 </div>
@@ -142,56 +146,58 @@ export default function Landing() {
 
       <StudioShowcase />
 
-      <section className="py-20 bg-light-bg dark:bg-dark-bg">
-        <div className="max-width-container">
+      {/* Session Types Section */}
+      <section className="py-8 md:py-12 tablet:py-16 lg:py-20 bg-light-bg dark:bg-dark-bg">
+        <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-6 md:mb-10 tablet:mb-12"
           >
-            <h2 className="text-display-md font-bold text-light-text dark:text-dark-text mb-6">
+            <h2 className="text-2xl md:text-3xl tablet:text-4xl lg:text-5xl font-bold text-light-text dark:text-dark-text mb-3 md:mb-4">
               Session Types
             </h2>
-            <p className="text-lg text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto">
+            <p className="text-sm md:text-base tablet:text-lg text-light-text-muted dark:text-dark-text-muted max-w-2xl mx-auto px-2">
               Whether you're recording, practicing, or performing, we have the perfect setup for your needs
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 tablet:gap-6">
             {sessionTypes.map((session, index) => (
-              <motion.div
-                key={session.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="glass rounded-2xl p-6 text-center group hover:scale-105 transition-all duration-300 cursor-pointer"
-              >
-                <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">
-                  {session.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">
-                  {session.name}
-                </h3>
-                <div className="text-light-primary dark:text-dark-primary font-semibold text-lg mb-4">
-                  {session.price}
-                </div>
-                <ul className="text-sm text-light-text-muted dark:text-dark-text-muted space-y-2">
-                  {session.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="mt-6 bg-light-primary dark:bg-dark-primary text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              <Link key={session.name} to="/booking">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="glass rounded-xl md:rounded-2xl p-3 md:p-4 tablet:p-6 text-center group hover:scale-105 transition-all duration-300 cursor-pointer h-full"
                 >
-                  Book Now
-                </motion.button>
-              </motion.div>
+                  <div className="text-3xl md:text-4xl tablet:text-5xl mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+                    {session.icon}
+                  </div>
+                  <h3 className="text-sm md:text-base tablet:text-lg font-semibold text-light-text dark:text-dark-text mb-1 md:mb-2 line-clamp-1">
+                    {session.name}
+                  </h3>
+                  <div className="text-light-primary dark:text-dark-primary font-semibold text-xs md:text-sm tablet:text-base mb-2 md:mb-3">
+                    {session.price}
+                  </div>
+                  <ul className="text-xs text-light-text-muted dark:text-dark-text-muted space-y-1 mb-3 md:mb-4 hidden sm:block">
+                    {session.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center justify-center gap-1 line-clamp-1">
+                        <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-xs">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full bg-light-primary dark:bg-dark-primary text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg hover:opacity-90 transition-opacity text-xs md:text-sm"
+                  >
+                    Book Now
+                  </motion.button>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>
@@ -199,37 +205,39 @@ export default function Landing() {
 
       <TestimonialCarousel />
 
-      <section className="py-20 bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent">
-        <div className="max-width-container">
+      {/* CTA Section */}
+      <section className="py-10 md:py-12 tablet:py-16 lg:py-20 bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent px-4">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center text-white"
           >
-            <h2 className="text-display-md font-bold mb-6">
+            <h2 className="text-2xl md:text-3xl tablet:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 tablet:mb-6 px-2">
               Ready to Create Something Amazing?
             </h2>
-            <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+            <p className="text-sm md:text-base tablet:text-lg lg:text-xl mb-6 md:mb-8 opacity-90 max-w-2xl mx-auto px-2">
               Join hundreds of musicians who trust Resonance Studio for their creative journey
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/booking">
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto">
+              <Link to="/booking" className="w-full sm:w-auto">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-white text-light-primary px-8 py-4 rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg transition-shadow"
+                  className="w-full sm:w-auto bg-white text-light-primary px-6 md:px-8 py-3 md:py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-shadow text-sm md:text-base"
                 >
                   Book Your Session
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                 </motion.button>
               </Link>
-              <Link to="/calendar">
+              <Link to="/calendar" className="w-full sm:w-auto">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-light-primary transition-colors"
+                  className="w-full sm:w-auto border-2 border-white text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-semibold hover:bg-white hover:text-light-primary transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
                 >
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5" />
                   View Calendar
                 </motion.button>
               </Link>
