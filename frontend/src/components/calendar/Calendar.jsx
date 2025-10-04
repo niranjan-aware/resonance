@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Clock, Users, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Calendar as CalendarIcon } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, isPast } from 'date-fns'
 import { bookingAPI, studioAPI } from '../../services/booking'
 import Button from '../common/Button'
@@ -68,18 +68,7 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
       const monthStart = startOfMonth(currentMonth)
       const monthEnd = endOfMonth(currentMonth)
       
-      // Option 1: If your API supports fetching all slots for a month at once
-      // This is the BEST solution - modify your backend to support this
-      /*
-      const response = await bookingAPI.getMonthAvailability(
-        activeStudio._id,
-        format(monthStart, 'yyyy-MM-dd'),
-        format(monthEnd, 'yyyy-MM-dd')
-      )
-      const bookingMap = response.bookings // Assuming API returns data keyed by date
-      */
-      
-      // Option 2: Batch requests with delay to avoid rate limiting
+      // Batch requests with delay to avoid rate limiting
       const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
       const bookingMap = {}
       
@@ -166,19 +155,19 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
     const booking = bookings[dateStr]
     
     if (isPast(date) && !isToday(date)) {
-      return 'text-light-text-muted dark:text-dark-text-muted bg-light-surface-variant/50 dark:bg-dark-surface-variant/50'
+      return 'text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-900/20'
     }
     
     if (!booking || !booking.summary) {
-      return 'text-light-text dark:text-dark-text hover:bg-light-surface-variant dark:hover:bg-dark-surface-variant'
+      return 'text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
     }
     
     const availability = booking.summary.availabilityPercentage
     
     if (availability === 0) {
-      return 'text-red-500 bg-red-50 dark:bg-red-900/20'
+      return 'text-red-600 bg-red-50 dark:bg-red-900/20'
     } else if (availability < 30) {
-      return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20'
+      return 'text-orange-600 bg-orange-50 dark:bg-orange-900/20'
     } else if (availability < 70) {
       return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
     } else {
@@ -200,64 +189,74 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
+    <div className="space-y-3 xs:space-y-4 md:space-y-6">
+      {/* Studio Selector - Mobile Optimized */}
+      <div className="flex gap-1.5 xs:gap-2 overflow-x-auto pb-2 -mx-2 px-2 xs:mx-0 xs:px-0 scrollbar-hide">
         {studios.map((studio) => (
           <Button
             key={studio._id}
             variant={activeStudio?._id === studio._id ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setActiveStudio(studio)}
+            className="flex-shrink-0 !px-2.5 xs:!px-3 md:!px-4 !py-1.5 xs:!py-2 !text-xs xs:!text-sm whitespace-nowrap"
           >
-            {studio.name}
+            <span className="hidden md:inline">{studio.name}</span>
+            <span className="md:hidden">{studio.name.split(' - ')[1] || studio.name}</span>
           </Button>
         ))}
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-light-text dark:text-dark-text">
+      {/* Calendar Header - Compact */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base xs:text-lg md:text-2xl font-bold text-light-text dark:text-dark-text truncate">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
           {activeStudio && (
-            <p className="text-light-text-muted dark:text-dark-text-muted">
+            <p className="text-[10px] xs:text-xs md:text-sm text-light-text-muted dark:text-dark-text-muted truncate">
               Showing availability for {activeStudio.name}
             </p>
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-1 xs:gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
             disabled={isLoading}
+            className="!p-1.5 xs:!p-2 !min-h-0"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5" />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleNextMonth}
             disabled={isLoading}
+            className="!p-1.5 xs:!p-2 !min-h-0"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5" />
           </Button>
         </div>
       </div>
 
-      <div className="glass rounded-2xl overflow-hidden relative">
-        <div className="grid grid-cols-7 border-b border-light-border dark:border-dark-border">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+      {/* Calendar Grid - Responsive */}
+      <div className="glass rounded-lg md:rounded-xl lg:rounded-2xl overflow-hidden relative border border-light-border dark:border-dark-border">
+        {/* Day Headers */}
+        <div className="grid grid-cols-7 border-b border-light-border dark:border-dark-border bg-light-surface-variant dark:bg-dark-surface-variant">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
             <div
               key={day}
-              className="p-4 text-center font-medium text-light-text-muted dark:text-dark-text-muted bg-light-surface-variant dark:bg-dark-surface-variant"
+              className="py-1.5 xs:py-2 md:py-3 lg:py-4 text-center text-[9px] xs:text-[10px] md:text-sm font-medium text-light-text-muted dark:text-dark-text-muted"
             >
-              {day}
+              <span className="hidden tablet-portrait:inline">{day}</span>
+              <span className="tablet-portrait:hidden">{['S', 'M', 'T', 'W', 'T', 'F', 'S'][index]}</span>
             </div>
           ))}
         </div>
 
+        {/* Calendar Days - Perfect Squares on Mobile */}
         <div className="grid grid-cols-7">
           {calendarDays.map((date, index) => {
             const dateStr = format(date, 'yyyy-MM-dd')
@@ -271,51 +270,56 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                 key={date.toISOString()}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.01 }}
+                transition={{ delay: index * 0.005 }}
                 className={`
-                  relative min-h-[120px] border-r border-b border-light-border dark:border-dark-border
+                  relative aspect-square md:min-h-[100px] lg:min-h-[120px] border-r border-b border-light-border dark:border-dark-border
                   cursor-pointer transition-all duration-200
                   ${getAvailabilityColor(date)}
-                  ${isSelected ? 'ring-2 ring-light-primary dark:ring-dark-primary ring-inset' : ''}
-                  ${isPastDate ? 'cursor-not-allowed' : ''}
+                  ${isSelected ? 'ring-2 ring-inset ring-light-primary dark:ring-dark-primary z-10' : ''}
+                  ${isPastDate ? 'cursor-not-allowed opacity-60' : 'hover:bg-opacity-80'}
                 `}
                 onClick={() => handleDateClick(date)}
                 whileHover={!isPastDate ? { scale: 1.02 } : {}}
               >
-                <div className="p-3 h-full flex flex-col">
-                  <div className="flex items-start justify-between mb-2">
+                <div className="absolute inset-0 flex flex-col p-0.5 xs:p-1 md:p-2 lg:p-3">
+                  {/* Date Number */}
+                  <div className="flex items-start justify-between mb-0.5 xs:mb-1 md:mb-2">
                     <span className={`
-                      text-sm font-medium
-                      ${!isSameMonth(date, currentMonth) ? 'opacity-50' : ''}
-                      ${isCurrentDay ? 'text-white bg-light-primary dark:bg-dark-primary w-7 h-7 rounded-full flex items-center justify-center text-xs' : ''}
+                      text-[9px] xs:text-[10px] md:text-xs lg:text-sm font-medium leading-none
+                      ${!isSameMonth(date, currentMonth) ? 'opacity-40' : ''}
+                      ${isCurrentDay ? 'w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5 lg:w-7 lg:h-7 bg-light-primary dark:bg-dark-primary text-white rounded-full flex items-center justify-center text-[7px] xs:text-[8px] md:text-[10px] lg:text-xs' : ''}
                     `}>
                       {format(date, 'd')}
                     </span>
                     
                     {isSelected && (
-                      <div className="w-2 h-2 bg-light-primary dark:bg-dark-primary rounded-full" />
+                      <div className="w-1 h-1 xs:w-1.5 xs:h-1.5 md:w-2 md:h-2 bg-light-primary dark:bg-dark-primary rounded-full flex-shrink-0" />
                     )}
                   </div>
 
+                  {/* Booking Info - Scales with screen */}
                   {booking && !isPastDate && booking.summary && (
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs">
-                          <Clock className="w-3 h-3" />
+                    <div className="flex-1 flex flex-col justify-between min-h-0">
+                      <div className="space-y-0.5 xs:space-y-1">
+                        {/* Slot Count */}
+                        <div className="flex items-center gap-0.5 xs:gap-1 text-[7px] xs:text-[8px] md:text-[10px] lg:text-xs">
+                          <Clock className="w-1.5 h-1.5 xs:w-2 xs:h-2 md:w-2.5 md:h-2.5 lg:w-3 lg:h-3 flex-shrink-0" />
                           <span className="font-semibold">{booking.summary.available}</span>
                           <span className="opacity-70">/ {booking.summary.total}</span>
                         </div>
                         
+                        {/* Time Range - Hidden on smallest screens */}
                         {booking.summary.timeRanges && booking.summary.timeRanges.length > 0 && (
-                          <div className="text-[10px] opacity-70 truncate">
+                          <div className="hidden md:block text-[7px] lg:text-[10px] opacity-70 truncate leading-tight">
                             {booking.summary.timeRanges[0]}
                             {booking.summary.timeRanges.length > 1 && ` +${booking.summary.timeRanges.length - 1}`}
                           </div>
                         )}
                       </div>
                       
-                      <div className="mt-2">
-                        <div className="w-full bg-light-border dark:bg-dark-border rounded-full h-1.5">
+                      {/* Progress Bar */}
+                      <div className="mt-0.5 xs:mt-1 md:mt-2">
+                        <div className="w-full bg-light-border dark:bg-dark-border rounded-full h-0.5 xs:h-1 md:h-1.5 overflow-hidden">
                           <div 
                             className="h-full rounded-full bg-current transition-all duration-300"
                             style={{ 
@@ -323,28 +327,31 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
                             }}
                           />
                         </div>
-                        <div className="text-[10px] text-center mt-1 font-medium">
+                        {/* Percentage */}
+                        <div className="hidden xs:block text-[7px] md:text-[8px] lg:text-[10px] text-center mt-0.5 font-medium">
                           {booking.summary.availabilityPercentage}%
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {/* Past Date Label */}
                   {isPastDate && (
-                    <div className="text-xs opacity-50 mt-auto">
+                    <div className="text-[7px] xs:text-[8px] md:text-xs opacity-50 mt-auto">
                       Past
                     </div>
                   )}
 
+                  {/* Empty States */}
                   {!booking && !isPastDate && !isLoading && (
                     <div className="flex-1 flex items-center justify-center">
-                      <span className="text-xs opacity-50">Closed</span>
+                      <span className="text-[7px] xs:text-[8px] md:text-xs opacity-50">Closed</span>
                     </div>
                   )}
                   
                   {!booking && !isPastDate && isLoading && (
                     <div className="flex-1 flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" />
+                      <div className="w-2 h-2 xs:w-3 xs:h-3 md:w-4 md:h-4 border border-current border-t-transparent rounded-full animate-spin opacity-50" />
                     </div>
                   )}
                 </div>
@@ -353,29 +360,43 @@ export default function Calendar({ selectedStudio, onDateSelect, selectedDate })
           })}
         </div>
 
+        {/* Loading Overlay */}
         {isLoading && (
-          <div className="absolute inset-0 bg-light-bg/50 dark:bg-dark-bg/50 flex items-center justify-center rounded-2xl backdrop-blur-sm">
+          <div className="absolute inset-0 bg-light-bg/50 dark:bg-dark-bg/50 flex items-center justify-center rounded-lg md:rounded-xl lg:rounded-2xl backdrop-blur-sm z-20">
             <Loading text="Loading availability..." />
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">High (70%+)</span>
+      {/* Legend - Compact for Mobile */}
+      <div className="flex flex-wrap gap-1.5 xs:gap-2 md:gap-3 lg:gap-4 text-[9px] xs:text-[10px] md:text-xs lg:text-sm">
+        <div className="flex items-center gap-1 xs:gap-1.5">
+          <div className="w-2 h-2 xs:w-2.5 xs:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded flex-shrink-0" />
+          <span className="text-light-text-muted dark:text-dark-text-muted whitespace-nowrap">
+            <span className="hidden md:inline">High (70%+)</span>
+            <span className="md:hidden">High</span>
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">Medium (30-70%)</span>
+        <div className="flex items-center gap-1 xs:gap-1.5">
+          <div className="w-2 h-2 xs:w-2.5 xs:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded flex-shrink-0" />
+          <span className="text-light-text-muted dark:text-dark-text-muted whitespace-nowrap">
+            <span className="hidden md:inline">Medium (30-70%)</span>
+            <span className="md:hidden">Med</span>
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">Low (&lt;30%)</span>
+        <div className="flex items-center gap-1 xs:gap-1.5">
+          <div className="w-2 h-2 xs:w-2.5 xs:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded flex-shrink-0" />
+          <span className="text-light-text-muted dark:text-dark-text-muted whitespace-nowrap">
+            <span className="hidden md:inline">Low (&lt;30%)</span>
+            <span className="md:hidden">Low</span>
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded" />
-          <span className="text-light-text-muted dark:text-dark-text-muted">Fully Booked</span>
+        <div className="flex items-center gap-1 xs:gap-1.5">
+          <div className="w-2 h-2 xs:w-2.5 xs:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex-shrink-0" />
+          <span className="text-light-text-muted dark:text-dark-text-muted whitespace-nowrap">
+            <span className="hidden md:inline">Fully Booked</span>
+            <span className="md:hidden">Full</span>
+          </span>
         </div>
       </div>
     </div>

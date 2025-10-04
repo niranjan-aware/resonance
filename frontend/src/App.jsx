@@ -1,4 +1,3 @@
-// Updated App.jsx to include Gallery
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
@@ -8,18 +7,18 @@ import Landing from './pages/Landing'
 import Booking from './pages/Booking'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
-import Gallery from './pages/Gallery' // Add this import
+import Gallery from './pages/Gallery'
 import AuthModal from './components/common/AuthModal'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import ContactSection from './components/landing/ContactSection'
 import StudioShowcase from './components/landing/StudioShowcase'
+import ScrollToTop from './components/common/ScrollToTop'
 import { useAuthStore } from './store/useAuthStore'
 
 function App() {
   const location = useLocation()
   const { showAuthModal, checkAuth } = useAuthStore()
 
-  // Check authentication status on app load
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
@@ -31,6 +30,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg transition-colors duration-300">
+      <ScrollToTop />
       <Header />
       
       <AnimatePresence mode="wait" initial={false}>
@@ -46,7 +46,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/calendar" element={<Calendar />} />
-            <Route path="/gallery" element={<Gallery />} /> {/* Add this route */}
+            <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<ContactSection />} />
             <Route path="/studios" element={<StudioShowcase />} />
             <Route 

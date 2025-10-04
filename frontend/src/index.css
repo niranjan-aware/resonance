@@ -17,6 +17,8 @@
     min-height: -webkit-fill-available;
     touch-action: manipulation;
     overscroll-behavior-y: none;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   input, textarea, button, select {
@@ -99,6 +101,15 @@
 
   .safe-right {
     padding-right: env(safe-area-inset-right);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -221,5 +232,29 @@ select {
   
   button:hover {
     transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .max-w-4xl,
+  .max-w-7xl {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  button {
+    white-space: nowrap;
+  }
+  
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+    width: 100%;
   }
 }

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { 
   Users, 
   Clock, 
@@ -107,23 +108,13 @@ const sizeColors = {
 
 // Individual Studio Card Component
 const StudioCard = ({ studio, index }) => {
-  const handleBookNow = () => {
-    // In a real app, this would navigate to the booking page with the studio pre-selected
-    alert(`Navigating to booking page for ${studio.name}`)
-  }
-
-  const handleViewDetails = () => {
-    // In a real app, this would show a modal or navigate to studio details
-    alert(`Viewing details for ${studio.name}`)
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: index * 0.2 }}
       viewport={{ once: true }}
-      className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group hover:scale-[1.02] border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-800 rounded-2xl xs:rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group border border-gray-200 dark:border-gray-700 flex flex-col h-full"
     >
       {/* Studio Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -134,86 +125,78 @@ const StudioCard = ({ studio, index }) => {
         />
         
         {/* Overlay with studio type */}
-        <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${sizeColors[studio.size]}`}>
+        <div className="absolute top-2 xs:top-3 md:top-4 left-2 xs:left-3 md:left-4">
+          <span className={`px-2 xs:px-2.5 md:px-3 py-0.5 xs:py-1 rounded-full text-[10px] xs:text-xs font-medium capitalize ${sizeColors[studio.size]}`}>
             {studio.size} Studio
           </span>
         </div>
 
         {/* Rating overlay */}
-        <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
-          <div className="flex items-center gap-1 text-white text-sm">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+        <div className="absolute top-2 xs:top-3 md:top-4 right-2 xs:right-3 md:right-4 bg-black/50 backdrop-blur-sm rounded-full px-2 xs:px-2.5 md:px-3 py-0.5 xs:py-1">
+          <div className="flex items-center gap-1 text-white text-[10px] xs:text-xs md:text-sm">
+            <Star className="w-2.5 h-2.5 xs:w-3 xs:h-3 md:w-4 md:h-4 fill-yellow-400 text-yellow-400" />
             <span className="font-medium">{studio.rating}</span>
             <span className="text-white/70">({studio.reviews})</span>
           </div>
         </div>
-
-        {/* View More Images Button */}
-        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button className="bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-            <Eye className="w-4 h-4" />
-            {studio.images.length} Photos
-          </button>
-        </div>
       </div>
 
       {/* Studio Details */}
-      <div className="p-6 space-y-4">
+      <div className="p-3 xs:p-4 md:p-5 lg:p-6 space-y-3 xs:space-y-3.5 md:space-y-4 flex-1 flex flex-col">
         {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-start justify-between">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <div className="space-y-1.5 xs:space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm xs:text-base md:text-lg lg:text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
               {studio.name}
             </h3>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-right flex-shrink-0">
+              <div className="text-base xs:text-lg md:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                 ₹{studio.basePrice.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">per hour</div>
+              <div className="text-[10px] xs:text-xs text-gray-500 dark:text-gray-400">per hour</div>
             </div>
           </div>
 
-          <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed line-clamp-2">
+          <p className="text-[11px] xs:text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
             {studio.description}
           </p>
         </div>
 
         {/* Studio Info Grid */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <Users className="w-4 h-4 text-blue-500" />
-            <span>Up to {studio.capacity} people</span>
+        <div className="grid grid-cols-2 gap-2 xs:gap-2.5 md:gap-3 text-[10px] xs:text-xs md:text-sm">
+          <div className="flex items-center gap-1 xs:gap-1.5 md:gap-2 text-gray-600 dark:text-gray-400">
+            <Users className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
+            <span className="truncate">Up to {studio.capacity}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <MapPin className="w-4 h-4 text-blue-500" />
-            <span>{studio.area}</span>
+          <div className="flex items-center gap-1 xs:gap-1.5 md:gap-2 text-gray-600 dark:text-gray-400">
+            <MapPin className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
+            <span className="truncate">{studio.area}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <Clock className="w-4 h-4 text-blue-500" />
-            <span>{studio.hours}</span>
+          <div className="flex items-center gap-1 xs:gap-1.5 md:gap-2 text-gray-600 dark:text-gray-400">
+            <Clock className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
+            <span className="truncate">{studio.hours}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <Volume2 className="w-4 h-4 text-blue-500" />
-            <span>Pro Audio</span>
+          <div className="flex items-center gap-1 xs:gap-1.5 md:gap-2 text-gray-600 dark:text-gray-400">
+            <Volume2 className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
+            <span className="truncate">Pro Audio</span>
           </div>
         </div>
 
         {/* Key Features */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Key Features</h4>
-          <div className="flex flex-wrap gap-1">
+        <div className="space-y-1.5 xs:space-y-2">
+          <h4 className="text-[11px] xs:text-xs md:text-sm font-semibold text-gray-900 dark:text-white">Key Features</h4>
+          <div className="flex flex-wrap gap-1 xs:gap-1.5">
             {studio.features.slice(0, 3).map((feature, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                className="inline-flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-[9px] xs:text-[10px] md:text-xs font-medium"
               >
-                <CheckCircle className="w-3 h-3" />
-                {feature}
+                <CheckCircle className="w-2 h-2 xs:w-2.5 xs:h-2.5 md:w-3 md:h-3 flex-shrink-0" />
+                <span className="truncate">{feature}</span>
               </span>
             ))}
             {studio.features.length > 3 && (
-              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-xs">
+              <span className="px-1.5 xs:px-2 py-0.5 xs:py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-[9px] xs:text-[10px] md:text-xs">
                 +{studio.features.length - 3} more
               </span>
             )}
@@ -221,33 +204,33 @@ const StudioCard = ({ studio, index }) => {
         </div>
 
         {/* Equipment Preview */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Available Equipment</h4>
-          <div className="flex flex-wrap gap-1">
+        <div className="space-y-1.5 xs:space-y-2">
+          <h4 className="text-[11px] xs:text-xs md:text-sm font-semibold text-gray-900 dark:text-white">Available Equipment</h4>
+          <div className="flex flex-wrap gap-1 xs:gap-1.5">
             {studio.equipment.slice(0, 4).map((item, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded text-xs font-medium"
+                className="px-1.5 xs:px-2 py-0.5 xs:py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded text-[9px] xs:text-[10px] md:text-xs font-medium truncate"
               >
                 {item}
               </span>
             ))}
             {studio.equipment.length > 4 && (
-              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded text-xs">
-                +{studio.equipment.length - 4} more
+              <span className="px-1.5 xs:px-2 py-0.5 xs:py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded text-[9px] xs:text-[10px] md:text-xs">
+                +{studio.equipment.length - 4}
               </span>
             )}
           </div>
         </div>
 
         {/* Suitable For */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Perfect For</h4>
-          <div className="flex flex-wrap gap-1">
+        <div className="space-y-1.5 xs:space-y-2">
+          <h4 className="text-[11px] xs:text-xs md:text-sm font-semibold text-gray-900 dark:text-white">Perfect For</h4>
+          <div className="flex flex-wrap gap-1 xs:gap-1.5">
             {studio.suitableFor.map((type, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded text-xs font-medium"
+                className="px-1.5 xs:px-2 py-0.5 xs:py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded text-[9px] xs:text-[10px] md:text-xs font-medium"
               >
                 {type}
               </span>
@@ -255,27 +238,29 @@ const StudioCard = ({ studio, index }) => {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleBookNow}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors"
-          >
-            <Music className="w-4 h-4" />
-            Book Now
-            <ArrowRight className="w-4 h-4" />
-          </motion.button>
+        {/* Action Buttons - Fixed height container */}
+        <div className="flex gap-2 xs:gap-2.5 md:gap-3 pt-2 xs:pt-3 mt-auto">
+          <Link to="/booking" className="flex-1">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 xs:px-4 py-2 xs:py-2.5 md:py-3 rounded-lg xs:rounded-xl font-semibold flex items-center justify-center gap-1.5 xs:gap-2 transition-colors text-[11px] xs:text-xs md:text-sm lg:text-base"
+            >
+              <Music className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">Book Now</span>
+              <ArrowRight className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+            </motion.button>
+          </Link>
           
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleViewDetails}
-            className="px-4 py-3 border-2 border-blue-600 text-blue-600 dark:text-blue-400 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-          </motion.button>
+          <Link to={`/studios/${studio.id}`}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="h-full px-3 xs:px-3.5 md:px-4 py-2 xs:py-2.5 md:py-3 border-2 border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg xs:rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5" />
+            </motion.button>
+          </Link>
         </div>
       </div>
     </motion.div>
@@ -284,45 +269,37 @@ const StudioCard = ({ studio, index }) => {
 
 // Main StudioShowcase Component
 export default function StudioShowcase() {
-  const handleViewAvailability = () => {
-    alert('Navigating to calendar page to view availability')
-  }
-
-  const handleContactUs = () => {
-    alert('Opening contact modal or navigating to contact page')
-  }
-
   return (
-    <section id="studios" className="py-20 bg-gray-50 dark:bg-gray-900/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="studios" className="py-8 xs:py-10 md:py-12 lg:py-16 xl:py-20 bg-gray-50 dark:bg-gray-900/50 px-3 xs:px-4 md:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-8 xs:mb-10 md:mb-12 lg:mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium mb-4">
-            <Music className="w-4 h-4" />
+          <div className="inline-flex items-center gap-1.5 xs:gap-2 px-3 xs:px-4 py-1.5 xs:py-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] xs:text-xs md:text-sm font-medium mb-3 xs:mb-4">
+            <Music className="w-3 h-3 xs:w-3.5 xs:h-3.5 md:w-4 md:h-4" />
             Our Studios
           </div>
           
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-xl xs:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 dark:text-white mb-3 xs:mb-4 md:mb-6 leading-tight">
             Choose Your Perfect
             <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Creative Space
             </span>
           </h2>
           
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xs xs:text-sm md:text-base lg:text-lg xl:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed px-4">
             From intimate solo sessions to full band recordings, our three uniquely designed studios 
             offer professional-grade equipment and perfect acoustics for every musical vision.
           </p>
         </motion.div>
 
         {/* Studios Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-5 md:gap-6 lg:gap-8">
           {studios.map((studio, index) => (
             <StudioCard key={studio.id} studio={studio} index={index} />
           ))}
@@ -334,37 +311,39 @@ export default function StudioShowcase() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mt-16"
+          className="text-center mt-8 xs:mt-10 md:mt-12 lg:mt-16"
         >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-            <h3 className="text-2xl font-bold mb-4">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl xs:rounded-2xl p-4 xs:p-6 md:p-8 text-white">
+            <h3 className="text-base xs:text-lg md:text-xl lg:text-2xl font-bold mb-2 xs:mb-3 md:mb-4">
               Not sure which studio is right for you?
             </h3>
-            <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+            <p className="text-xs xs:text-sm md:text-base text-blue-100 mb-4 xs:mb-5 md:mb-6 max-w-2xl mx-auto leading-relaxed">
               Our team can help you choose the perfect studio based on your project needs, 
               group size, and musical style.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleViewAvailability}
-                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg transition-shadow justify-center"
-              >
-                <Calendar className="w-5 h-5" />
-                View Availability
-              </motion.button>
+            <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 md:gap-4 justify-center max-w-lg mx-auto">
+              <Link to="/calendar" className="flex-1">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full bg-white text-blue-600 px-4 xs:px-6 md:px-8 py-2.5 xs:py-3 rounded-lg xs:rounded-xl font-semibold flex items-center gap-1.5 xs:gap-2 hover:shadow-lg transition-shadow justify-center text-xs xs:text-sm md:text-base"
+                >
+                  <Calendar className="w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">View Availability</span>
+                </motion.button>
+              </Link>
               
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleContactUs}
-                className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-colors flex items-center gap-2 justify-center"
-              >
-                <Headphones className="w-5 h-5" />
-                Contact Us
-              </motion.button>
+              <Link to="/contact" className="flex-1">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full border-2 border-white text-white px-4 xs:px-6 md:px-8 py-2.5 xs:py-3 rounded-lg xs:rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-colors flex items-center gap-1.5 xs:gap-2 justify-center text-xs xs:text-sm md:text-base"
+                >
+                  <Headphones className="w-3.5 h-3.5 xs:w-4 xs:h-4 md:w-5 md:h-5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Contact Us</span>
+                </motion.button>
+              </Link>
             </div>
           </div>
         </motion.div>
