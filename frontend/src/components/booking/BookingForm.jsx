@@ -119,11 +119,26 @@ export default function BookingForm() {
     }
   }, [selectedStudio, selectedDate, fetchAvailableSlots])
 
-   useEffect(() => {
-    window.scrollTo({
+  useEffect(() => {
+    // Scroll to top when step changes
+    const scrollOptions = {
       top: 0,
+      left: 0,
       behavior: 'smooth'
-    })
+    }
+    
+    // Try multiple methods to ensure scroll works
+    window.scrollTo(scrollOptions)
+    
+    // Fallback for some browsers
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0
+    }
+    
+    // Additional fallback
+    if (document.body) {
+      document.body.scrollTop = 0
+    }
   }, [currentStep])
 
   const validateCurrentStep = (step) => {

@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
+import { Toaster } from 'react-hot-toast'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import Landing from './pages/Landing'
@@ -32,6 +33,69 @@ function App() {
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg transition-colors duration-300">
       <ScrollToTop />
       <Header />
+      
+      {/* Toast Notifications with Mobile-Optimized Configuration */}
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        gutter={8}
+        containerClassName="toast-container"
+        containerStyle={{
+          top: 80,
+        }}
+        toastOptions={{
+          // Default options for all toasts
+          className: '',
+          duration: 4000,
+          style: {
+            maxWidth: '90vw',
+            width: 'auto',
+            minWidth: '250px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            borderRadius: '12px',
+            background: 'var(--toast-bg)',
+            color: 'var(--toast-text)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 9999,
+          },
+          // Success toast styling
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#FFFFFF',
+            },
+            style: {
+              background: '#10B981',
+              color: '#FFFFFF',
+            },
+          },
+          // Error toast styling
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#FFFFFF',
+            },
+            style: {
+              background: '#EF4444',
+              color: '#FFFFFF',
+            },
+          },
+          // Loading toast styling
+          loading: {
+            iconTheme: {
+              primary: '#3B82F6',
+              secondary: '#FFFFFF',
+            },
+            style: {
+              background: '#3B82F6',
+              color: '#FFFFFF',
+            },
+          },
+        }}
+      />
       
       <AnimatePresence mode="wait" initial={false}>
         <motion.main
