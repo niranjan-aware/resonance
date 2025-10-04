@@ -51,6 +51,17 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
   const toggleTheme = () => {
     const newTheme = !isDark
     setIsDark(newTheme)
@@ -90,29 +101,28 @@ export default function Header() {
             : 'bg-transparent'
         }`}
       >
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-3 group">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14 sm:h-16 md:h-20">
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group" onClick={() => setIsOpen(false)}>
             <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-              className="relative"
+              whileTap={{ scale: 0.9 }}
+              className="relative flex-shrink-0"
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Music className="w-7 h-7 text-white" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Music className="w-5 h-5 sm:w-5 sm:h-5 md:w-7 md:h-7 text-white" />
               </div>
               <div className="absolute -inset-1 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity blur"></div>
             </motion.div>
-            <div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="hidden sm:block">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-none">
                 Resonance
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 -mt-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
                 Sinhgad Road
               </div>
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -135,32 +145,30 @@ export default function Header() {
             ))}
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <motion.button
-              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
             >
               {isDark ? (
-                <Sun className="w-5 h-5 text-yellow-500" />
+                <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-5 h-5 text-gray-600" />
+                <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
               )}
             </motion.button>
 
             {user ? (
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-1.5 sm:gap-2 bg-gray-100 dark:bg-gray-800 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md sm:rounded-lg flex items-center justify-center flex-shrink-0">
+                    <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="hidden sm:block text-xs md:text-sm font-medium text-gray-900 dark:text-white truncate max-w-[60px] md:max-w-[100px]">
                     {user.name}
                   </span>
                 </motion.button>
@@ -171,13 +179,13 @@ export default function Header() {
                       initial={{ opacity: 0, scale: 0.95, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 py-2"
+                      className="absolute right-0 mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 py-2"
                     >
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className="font-medium text-gray-900 dark:text-white text-sm truncate">
                           {user.name}
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                           {user.email}
                         </div>
                       </div>
@@ -223,25 +231,23 @@ export default function Header() {
               </div>
             ) : (
               <motion.button
-                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAuthModal(true)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 text-white px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors text-xs sm:text-sm md:text-base min-h-[36px] sm:min-h-[40px]"
               >
                 Sign In
               </motion.button>
             )}
 
             <motion.button
-              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsOpen(!isOpen)}
               className="lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               {isOpen ? (
-                <X className="w-6 h-6 text-gray-900 dark:text-white" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 dark:text-white" />
               ) : (
-                <Menu className="w-6 h-6 text-gray-900 dark:text-white" />
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 dark:text-white" />
               )}
             </motion.button>
           </div>
@@ -254,10 +260,10 @@ export default function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="fixed top-20 left-0 right-0 z-40 lg:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700"
+            className="fixed top-16 sm:top-20 left-0 right-0 z-40 lg:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 max-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-5rem)] overflow-y-auto"
           >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <div className="space-y-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+              <div className="space-y-2 sm:space-y-4">
                 {navItems.map((item, index) => (
                   <motion.div
                     key={item.name}
@@ -268,7 +274,7 @@ export default function Header() {
                     <Link
                       to={item.path}
                       onClick={() => handleNavClick(item.path)}
-                      className={`block px-4 py-3 text-lg font-medium rounded-xl transition-colors ${
+                      className={`block px-4 py-3 text-base sm:text-lg font-medium rounded-xl transition-colors ${
                         location.pathname === item.path
                           ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                           : 'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
