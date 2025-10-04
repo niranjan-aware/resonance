@@ -28,9 +28,13 @@ export default function Header() {
   const [isDark, setIsDark] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isHeroSection, setIsHeroSection] = useState(true)
   
   const location = useLocation()
   const { user, logout, setShowAuthModal } = useAuthStore()
+
+  // Check if we're on the landing page
+  const isLandingPage = location.pathname === '/'
 
   useEffect(() => {
     const theme = localStorage.getItem('theme')
@@ -45,11 +49,28 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
+      const scrollPosition = window.scrollY
+      setScrolled(scrollPosition > 50)
+      
+      // On landing page, check if we're still in hero section (approx first 80vh)
+      if (isLandingPage) {
+        setIsHeroSection(scrollPosition < window.innerHeight * 0.8)
+      }
     }
+    
+    handleScroll() // Check on mount
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [isLandingPage])
+
+  // Reset isHeroSection when navigating away from landing page
+  useEffect(() => {
+    if (!isLandingPage) {
+      setIsHeroSection(false)
+    } else {
+      setIsHeroSection(window.scrollY < window.innerHeight * 0.8)
+    }
+  }, [isLandingPage])
 
   useEffect(() => {
     if (isOpen) {
@@ -90,16 +111,40 @@ export default function Header() {
     setShowUserMenu(false)
   }
 
+  // Determine text color based on position and theme
+  const getTextColor = () => {
+    if (isDark) {
+      // Dark mode - always use light text
+      return 'text-white'
+    } else {
+      // Light mode - use light text on hero, dark text elsewhere
+      if (isLandingPage && isHeroSection) {
+        return 'text-white'
+      } else {
+        return 'text-gray-900'
+      }
+    }
+  }
+
+  const getBgColor = () => {
+    if (scrolled) {
+      return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg border-b border-gray-200 dark:border-gray-700'
+    } else if (isLandingPage && isHeroSection) {
+      return 'bg-transparent'
+    } else {
+      return 'bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700'
+    }
+  }
+
+  const textColorClass = getTextColor()
+  const mutedTextClass = isDark ? 'text-gray-300' : (isLandingPage && isHeroSection ? 'text-white/80' : 'text-gray-600')
+
   return (
     <>
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled 
-            ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg border-b border-gray-200 dark:border-gray-700' 
-            : 'bg-transparent'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${getBgColor()}`}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14 sm:h-16 md:h-20">
           <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group" onClick={() => setIsOpen(false)}>
@@ -113,10 +158,10 @@ export default function Header() {
               <div className="absolute -inset-1 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity blur"></div>
             </motion.div>
             <div className="hidden sm:block">
-              <div className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-none">
+              <div className={`text-base sm:text-lg md:text-xl font-bold ${textColorClass} leading-none`}>
                 Resonance
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className={`text-xs ${mutedTextClass}`}>
                 Sinhgad Road
               </div>
             </div>
@@ -131,7 +176,7 @@ export default function Header() {
                 className={`relative px-3 py-2 text-sm font-medium transition-colors group ${
                   location.pathname === item.path
                     ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                    : `${mutedTextClass} hover:text-blue-600 dark:hover:text-blue-400`
                 }`}
               >
                 {item.name}
@@ -149,12 +194,16 @@ export default function Header() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={toggleTheme}
-              className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0 ${
+                scrolled || (!isLandingPage || !isHeroSection)
+                  ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+              }`}
             >
               {isDark ? (
                 <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
               ) : (
-                <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                <Moon className={`w-4 h-4 sm:w-5 sm:h-5 ${isLandingPage && isHeroSection ? 'text-white' : 'text-gray-600'}`} />
               )}
             </motion.button>
 
@@ -163,12 +212,16 @@ export default function Header() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-1.5 sm:gap-2 bg-gray-100 dark:bg-gray-800 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors ${
+                    scrolled || (!isLandingPage || !isHeroSection)
+                      ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+                  }`}
                 >
                   <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md sm:rounded-lg flex items-center justify-center flex-shrink-0">
                     <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                   </div>
-                  <span className="hidden sm:block text-xs md:text-sm font-medium text-gray-900 dark:text-white truncate max-w-[60px] md:max-w-[100px]">
+                  <span className={`hidden sm:block text-xs md:text-sm font-medium ${textColorClass} truncate max-w-[60px] md:max-w-[100px]`}>
                     {user.name}
                   </span>
                 </motion.button>
@@ -242,12 +295,16 @@ export default function Header() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className={`lg:hidden p-2 rounded-lg transition-colors ${
+                scrolled || (!isLandingPage || !isHeroSection)
+                  ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+              }`}
             >
               {isOpen ? (
-                <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 dark:text-white" />
+                <X className={`w-5 h-5 sm:w-6 sm:h-6 ${textColorClass}`} />
               ) : (
-                <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 dark:text-white" />
+                <Menu className={`w-5 h-5 sm:w-6 sm:h-6 ${textColorClass}`} />
               )}
             </motion.button>
           </div>

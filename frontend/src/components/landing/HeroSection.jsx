@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { Play, ArrowRight, Music, Star, Users, Calendar } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
-import Button from '../common/Button'
 
 export default function HeroSection() {
   const [ref, inView] = useInView({
@@ -57,7 +56,7 @@ export default function HeroSection() {
             repeat: Infinity,
             ease: "easeInOut" 
           }}
-          className="absolute top-1/4 left-1/4 w-16 h-16 bg-light-primary/20 dark:bg-dark-primary/20 rounded-full backdrop-blur-sm border border-white/10"
+          className="absolute top-1/4 left-1/4 w-12 h-12 sm:w-16 sm:h-16 bg-light-primary/20 dark:bg-dark-primary/20 rounded-full backdrop-blur-sm border border-white/10"
         />
         <motion.div
           animate={{ 
@@ -70,7 +69,7 @@ export default function HeroSection() {
             ease: "easeInOut",
             delay: 1
           }}
-          className="absolute top-1/3 right-1/3 w-24 h-24 bg-light-accent/20 dark:bg-dark-accent/20 rounded-full backdrop-blur-sm border border-white/10"
+          className="absolute top-1/3 right-1/3 w-16 h-16 sm:w-24 sm:h-24 bg-light-accent/20 dark:bg-dark-accent/20 rounded-full backdrop-blur-sm border border-white/10"
         />
         <motion.div
           animate={{ 
@@ -83,7 +82,7 @@ export default function HeroSection() {
             ease: "easeInOut",
             delay: 2
           }}
-          className="absolute bottom-1/3 left-1/5 w-12 h-12 bg-white/10 rounded-full backdrop-blur-sm border border-white/20"
+          className="absolute bottom-1/3 left-1/5 w-8 h-8 sm:w-12 sm:h-12 bg-white/10 rounded-full backdrop-blur-sm border border-white/20"
         />
       </div>
 
@@ -92,28 +91,28 @@ export default function HeroSection() {
         variants={containerVariants}
         initial="hidden"
         animate={inView ? "visible" : "hidden"}
-        className="relative z-30 max-width-container text-center"
+        className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pb-24 sm:pb-8"
       >
         {/* Badge */}
         <motion.div
           variants={itemVariants}
-          className="inline-flex items-center gap-2 glass px-6 py-3 rounded-full mb-8 text-white/90 backdrop-blur-xl border border-white/20"
+          className="inline-flex items-center gap-1.5 sm:gap-2 glass px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 rounded-full mb-4 sm:mb-6 md:mb-8 text-white/90 backdrop-blur-xl border border-white/20"
         >
           <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-medium">4.9 Rating</span>
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-[10px] sm:text-xs md:text-sm font-medium">4.9 Rating</span>
           </div>
           <div className="w-1 h-1 bg-white/40 rounded-full" />
           <div className="flex items-center gap-1">
-            <Users className="w-4 h-4" />
-            <span className="text-sm font-medium">500+ Musicians</span>
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs md:text-sm font-medium">500+ Musicians</span>
           </div>
         </motion.div>
 
         {/* Main Heading */}
         <motion.h1
           variants={itemVariants}
-          className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-4 md:mb-6 leading-tight"
         >
           Create Music in
           <br />
@@ -125,28 +124,28 @@ export default function HeroSection() {
         {/* Subtitle */}
         <motion.p
           variants={itemVariants}
-          className="text-xl md:text-2xl text-white/80 mb-12 max-w-3xl mx-auto leading-relaxed"
+          className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-white/80 mb-6 sm:mb-8 md:mb-12 max-w-3xl mx-auto leading-relaxed"
         >
           Experience world-class recording facilities with professional equipment, 
           perfect acoustics, and seamless booking on Sinhgad Road, Pune.
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Compact Mobile Design */}
         <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16"
+          className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 md:gap-6 justify-center items-stretch sm:items-center mb-8 sm:mb-12 md:mb-16 max-w-xl mx-auto"
         >
-          <Link to="/booking">
+          <Link to="/booking" className="flex-1 sm:flex-initial">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="relative group"
             >
-              <div className="absolute -inset-1 bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300" />
-              <button className="relative bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3 hover:shadow-glow transition-all duration-300">
-                <Calendar className="w-6 h-6" />
-                Book Your Session
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300" />
+              <button className="relative w-full bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-xl font-semibold text-xs sm:text-sm md:text-base lg:text-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:shadow-glow transition-all duration-300">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[11px] sm:text-xs md:text-sm lg:text-base">Book Your Session</span>
+                <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform flex-shrink-0" />
               </button>
             </motion.div>
           </Link>
@@ -154,54 +153,54 @@ export default function HeroSection() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="glass-strong backdrop-blur-xl border border-white/30 text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3 hover:bg-white/10 transition-all duration-300"
+            className="flex-1 sm:flex-initial glass-strong backdrop-blur-xl border border-white/30 text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-xl font-semibold text-xs sm:text-sm md:text-base lg:text-lg flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-white/10 transition-all duration-300"
             onClick={() => {
               const video = document.getElementById('studio-tour-video')
               if (video) video.play()
             }}
           >
-            <Play className="w-6 h-6" />
-            Virtual Studio Tour
+            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" />
+            <span className="whitespace-nowrap text-[11px] sm:text-xs md:text-sm lg:text-base">Virtual Studio Tour</span>
           </motion.button>
         </motion.div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - More Compact */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto"
+          className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 lg:gap-8 max-w-2xl mx-auto"
         >
-          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-2">3</div>
-            <div className="text-white/70">Premium Studios</div>
+          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-xl md:rounded-2xl p-2.5 sm:p-4 md:p-6 text-center">
+            <div className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0.5 sm:mb-2">3</div>
+            <div className="text-white/70 text-[10px] sm:text-xs md:text-sm leading-tight">Premium Studios</div>
           </div>
-          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-2">24/7</div>
-            <div className="text-white/70">Online Booking</div>
+          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-xl md:rounded-2xl p-2.5 sm:p-4 md:p-6 text-center">
+            <div className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0.5 sm:mb-2">24/7</div>
+            <div className="text-white/70 text-[10px] sm:text-xs md:text-sm leading-tight">Online Booking</div>
           </div>
-          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-2">₹1200</div>
-            <div className="text-white/70">Starting From</div>
+          <div className="glass-strong backdrop-blur-xl border border-white/20 rounded-xl md:rounded-2xl p-2.5 sm:p-4 md:p-6 text-center">
+            <div className="text-lg sm:text-2xl md:text-3xl font-bold text-white mb-0.5 sm:mb-2">₹1200</div>
+            <div className="text-white/70 text-[10px] sm:text-xs md:text-sm leading-tight">Starting From</div>
           </div>
         </motion.div>
+      </motion.div>
 
-        {/* Scroll Indicator */}
+      {/* Scroll Indicator - Fixed Position */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-40"
+      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center"
         >
           <motion.div
-            animate={{ y: [0, 10, 0] }}
+            animate={{ y: [0, 12, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center"
-          >
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-1 h-3 bg-white/50 rounded-full mt-2"
-            />
-          </motion.div>
+            className="w-1 h-3 bg-white/50 rounded-full mt-2"
+          />
         </motion.div>
       </motion.div>
 
@@ -217,7 +216,7 @@ export default function HeroSection() {
       </video>
 
       {/* Ambient Music Visualization */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-light-primary to-transparent opacity-30">
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-light-primary to-transparent opacity-30 z-30">
         <motion.div
           animate={{ 
             scaleX: [1, 1.2, 0.8, 1.5, 1],
