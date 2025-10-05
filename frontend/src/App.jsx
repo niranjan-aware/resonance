@@ -9,6 +9,7 @@ import Booking from './pages/Booking'
 import Calendar from './pages/Calendar'
 import Dashboard from './pages/Dashboard'
 import Gallery from './pages/Gallery'
+import Admin from './pages/Admin'
 import AuthModal from './components/common/AuthModal'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import ContactSection from './components/landing/ContactSection'
@@ -34,7 +35,6 @@ function App() {
       <ScrollToTop />
       <Header />
       
-      {/* Toast Notifications with Mobile-Optimized Configuration */}
       <Toaster
         position="top-center"
         reverseOrder={false}
@@ -44,7 +44,6 @@ function App() {
           top: 80,
         }}
         toastOptions={{
-          // Default options for all toasts
           className: '',
           duration: 4000,
           style: {
@@ -59,7 +58,6 @@ function App() {
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             zIndex: 9999,
           },
-          // Success toast styling
           success: {
             duration: 3000,
             iconTheme: {
@@ -71,7 +69,6 @@ function App() {
               color: '#FFFFFF',
             },
           },
-          // Error toast styling
           error: {
             duration: 4000,
             iconTheme: {
@@ -83,7 +80,6 @@ function App() {
               color: '#FFFFFF',
             },
           },
-          // Loading toast styling
           loading: {
             iconTheme: {
               primary: '#3B82F6',
@@ -118,6 +114,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Admin />
                 </ProtectedRoute>
               } 
             />

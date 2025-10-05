@@ -58,6 +58,8 @@ export default function Admin() {
 
   // Fetch bookings when date or filters change
   useEffect(() => {
+    console.log("*******************",user);
+    
     if (user && user.role === 'admin') {
       fetchBookingsByDate();
     }

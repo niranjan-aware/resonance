@@ -167,6 +167,8 @@ export const getBookingsByDateRange = async (req, res) => {
 
 // Get admin dashboard statistics
 export const getDashboardStats = async (req, res) => {
+    console.log(req);
+    
   try {
     const { period = '30d' } = req.query;
 

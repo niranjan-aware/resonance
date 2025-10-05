@@ -4,6 +4,8 @@ import toast from 'react-hot-toast'
 
 // FIXED: Correct API base URL for your backend
 const API_BASE_URL ='https://resonance-dkf1.onrender.com/api'
+// const API_BASE_URL ='https://localhost:3000/api'
+
 
 console.log('🔗 API Base URL:', API_BASE_URL) // Debug log
 

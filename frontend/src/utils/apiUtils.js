@@ -1,7 +1,7 @@
 // frontend/src/utils/apiClient.js
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
 // Create axios instance
 const apiClient = axios.create({
