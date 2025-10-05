@@ -16,7 +16,7 @@ import bookingRoutes from './routes/booking.js';
 import studioRoutes from './routes/studio.js';
 import paymentRoutes from './routes/payment.js';
 import contactRoutes from './routes/contact.js';
-
+import adminRoutes from './routes/admin.js';
 
 
 
@@ -62,6 +62,7 @@ app.use('/api/booking', bookingRoutes);
 app.use('/api/studio', studioRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ 
