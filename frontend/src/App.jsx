@@ -25,10 +25,10 @@ function App() {
     checkAuth()
   }, [checkAuth])
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/health`)
-      .catch(err => console.error("Health check failed:", err))
-  }, [])
+  // useEffect(() => {
+  //   fetch(`https://resonance-dkf1.onrender.com/health`)
+  //     .catch(err => console.error("Health check failed:", err))
+  // }, [])
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg transition-colors duration-300">
