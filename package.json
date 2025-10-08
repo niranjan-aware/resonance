@@ -2,9 +2,10 @@
   "name": "resonance",
   "version": "1.0.0",
   "description": "Resonance Studio Booking Platform",
+  "main": "backend/server.js",
   "scripts": {
-    "build": "cd frontend && npm install --include=dev && npm run build && cd ../backend && npm install",
-    "start": "cd backend && npm start"
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
   },
   "keywords": [],
   "author": "",
