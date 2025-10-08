@@ -2,6 +2,7 @@
 import 'dotenv/config'; // loads .env before any other imports
 
 import express from 'express';
+import path from "path";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import cors from 'cors';
