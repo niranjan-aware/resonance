@@ -164,8 +164,8 @@ export const createBooking = async (req, res) => {
       .lean();
 
     try {
-      await NotificationService.sendBookingCreatedNotification(populatedBooking);
-      await NotificationService.sendAdminNotification(populatedBooking, 'new_booking');
+      // await NotificationService.sendBookingCreatedNotification(populatedBooking);
+      // await NotificationService.sendAdminNotification(populatedBooking, 'new_booking');
     } catch (notifError) {
       console.error('Notification error:', notifError);
     }
