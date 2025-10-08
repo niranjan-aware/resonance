@@ -2,10 +2,10 @@
   "name": "book_review_api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "build": "cd backend && rm -rf node_modules && npm install && cd ../frontend && rm -rf node_modules && npm install && npm run build",
-    "start": "cd backend && npm start"
+    "build": "npm install --prefix backend && npm install --production=false --prefix frontend && cd frontend && npm run build",
+    "start": "npm run start --prefix backend"
   },
   "keywords": [],
   "author": "",
