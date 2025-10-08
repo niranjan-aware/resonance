@@ -1,14 +1,11 @@
 {
-  "name": "resonance",
+  "name": "book_review_api",
   "version": "1.0.0",
   "description": "",
-  "main": "backend/server.js",
+  "main": "index.js",
   "scripts": {
-    "install-frontend": "cd frontend && npm ci",
-    "install-backend": "cd backend && npm ci",
-    "build-frontend": "cd frontend && npm run build",
-    "build": "npm run install-frontend && npm run build-frontend && npm run install-backend",
-    "start": "cd backend && npm start"
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
   },
   "keywords": [],
   "author": "",
