@@ -4,8 +4,11 @@
   "description": "",
   "main": "backend/server.js",
   "scripts": {
-    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
-    "start": "npm start --prefix backend"
+    "install-frontend": "cd frontend && npm ci",
+    "install-backend": "cd backend && npm ci",
+    "build-frontend": "cd frontend && npm run build",
+    "build": "npm run install-frontend && npm run build-frontend && npm run install-backend",
+    "start": "cd backend && npm start"
   },
   "keywords": [],
   "author": "",
