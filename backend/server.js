@@ -2,7 +2,7 @@
 import 'dotenv/config'; // loads .env before any other imports
 
 import express from 'express';
-// import path from "path";
+import path from "path";
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
