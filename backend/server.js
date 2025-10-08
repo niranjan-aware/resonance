@@ -101,10 +101,14 @@ app.use((error, req, res, next) => {
 const __dirname = path.resolve();
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  const frontendPath = path.join(__dirname, "../frontend/dist");
+  
+  // ✅ Serve static files (CSS, JS, images, etc.)
+  app.use(express.static(frontendPath));
 
-  app.get("/{*any}", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+  // ✅ Serve React index.html for all other routes
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
   });
 }
 
