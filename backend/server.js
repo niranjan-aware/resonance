@@ -106,12 +106,11 @@ if (process.env.NODE_ENV === "production") {
   // ✅ Serve static files (CSS, JS, images, etc.)
   app.use(express.static(frontendPath));
 
-  // ✅ Serve React index.html for all other routes
-  app.get("*", (req, res) => {
+  // ✅ Serve React index.html for all other routes (Express 5 compatible)
+  app.get("/*", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
   });
 }
-
 
 const PORT = process.env.PORT || 5000;
 
