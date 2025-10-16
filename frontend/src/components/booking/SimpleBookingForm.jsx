@@ -468,18 +468,24 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* Date */}
+              {/* Date - FIXED FOR MOBILE */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Date
                 </label>
-                <input
-                  type="date"
-                  {...register('date', { required: 'Date is required' })}
-                  min={minDate}
-                  max={maxDateStr}
-                  className="w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    {...register('date', { required: 'Date is required' })}
+                    min={minDate}
+                    max={maxDateStr}
+                    className="w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white appearance-none"
+                    style={{
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none'
+                    }}
+                  />
+                </div>
                 {errors.date && (
                   <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
@@ -693,9 +699,8 @@ export default function SimpleBookingForm() {
                     <span className="font-semibold text-gray-900 dark:text-white min-w-[130px]">
                       Participants:
                     </span>
-                    <span className="">
-                        <span className="text-gray-700 dark:text-gray-300">
-                      {bookingSummary?.groupSize} participants </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {bookingSummary?.groupSize} participants
                     </span>
                   </div>
 
@@ -764,8 +769,7 @@ export default function SimpleBookingForm() {
               </Button>
             </div>
           </motion.div>
-        )
-        }
+        )}
       </AnimatePresence>
     </div>
   )

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// const API_BASE_URL ='https://resonance-dkf1.onrender.com/api'
+const API_BASE_URL ='http://localhost:3000/api'
 
 // Create axios instance with auth
 const createAuthAxios = () => {
@@ -17,7 +18,7 @@ const createAuthAxios = () => {
   }
 
   return axios.create({
-    baseURL: `${API_URL}/api/admin`,
+    baseURL: `${API_BASE_URL}/api/admin`,
     headers: {
       'Content-Type': 'application/json',
       ...(authToken && { Authorization: `Bearer ${authToken}` })

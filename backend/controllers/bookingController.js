@@ -2,6 +2,7 @@ import { BookingEngine } from '../services/bookingEngine.js';
 import Booking from '../models/Booking.js';
 import Studio from '../models/Studio.js';
 import NotificationService from '../services/notificationService.js';
+import GoogleIntegrationService from '../services/googleIntegration.js';
 
 export const checkAvailability = async (req, res) => {
   try {
@@ -163,6 +164,36 @@ export const createBooking = async (req, res) => {
       .populate('user', 'name email phone')
       .lean();
 
+    // Google Integration - Add to Calendar and Sheet
+    try {
+      console.log('Starting Google Integration...');
+      
+      // Add to Google Calendar
+      const calendarEvent = await GoogleIntegrationService.addToCalendar(populatedBooking);
+      
+      // Add to Google Sheet
+      await GoogleIntegrationService.addToSheet(populatedBooking);
+      
+      // Update booking with calendar event ID
+      if (calendarEvent?.id) {
+        await Booking.findByIdAndUpdate(booking._id, {
+          'googleIntegration.calendarEventId': calendarEvent.id,
+          'googleIntegration.syncStatus': 'synced',
+          'googleIntegration.lastSyncedAt': new Date()
+        });
+      }
+      
+      console.log('Google Integration successful');
+    } catch (googleError) {
+      console.error('Google Integration error:', googleError);
+      
+      // Update booking with error status but don't fail the booking
+      await Booking.findByIdAndUpdate(booking._id, {
+        'googleIntegration.syncStatus': 'failed',
+        'googleIntegration.syncError': googleError.message
+      });
+    }
+
     try {
       // await NotificationService.sendBookingCreatedNotification(populatedBooking);
       // await NotificationService.sendAdminNotification(populatedBooking, 'new_booking');
@@ -228,6 +259,26 @@ export const confirmBooking = async (req, res) => {
       .populate('studio', 'name size capacity pricing location images')
       .populate('user', 'name email phone');
 
+    // Update Google Calendar event
+    try {
+      if (booking.googleIntegration?.calendarEventId) {
+        await GoogleIntegrationService.updateCalendarEvent(
+          populatedBooking,
+          booking.googleIntegration.calendarEventId
+        );
+      }
+      
+      // Update Google Sheet
+      await GoogleIntegrationService.updateSheetRow(populatedBooking);
+      
+      await Booking.findByIdAndUpdate(bookingId, {
+        'googleIntegration.syncStatus': 'synced',
+        'googleIntegration.lastSyncedAt': new Date()
+      });
+    } catch (googleError) {
+      console.error('Google sync error:', googleError);
+    }
+
     await NotificationService.sendBookingConfirmation(populatedBooking);
 
     res.status(200).json({
@@ -273,6 +324,26 @@ export const cancelBooking = async (req, res) => {
     const populatedBooking = await Booking.findById(result.booking._id)
       .populate('studio', 'name size capacity pricing location images')
       .populate('user', 'name email phone');
+
+    // Delete/Update Google Calendar event
+    try {
+      if (booking.googleIntegration?.calendarEventId) {
+        await GoogleIntegrationService.deleteCalendarEvent(
+          booking.studio,
+          booking.googleIntegration.calendarEventId
+        );
+      }
+      
+      // Update Google Sheet with cancelled status
+      await GoogleIntegrationService.updateSheetRow(populatedBooking);
+      
+      await Booking.findByIdAndUpdate(bookingId, {
+        'googleIntegration.syncStatus': 'synced',
+        'googleIntegration.lastSyncedAt': new Date()
+      });
+    } catch (googleError) {
+      console.error('Google sync error:', googleError);
+    }
 
     await NotificationService.sendBookingCancellation(populatedBooking);
     await NotificationService.sendAdminNotification(populatedBooking, 'cancelled_booking');
@@ -392,6 +463,25 @@ export const updateBookingStatus = async (req, res) => {
       });
     }
 
+    // Update Google Calendar and Sheet
+    try {
+      if (booking.googleIntegration?.calendarEventId) {
+        await GoogleIntegrationService.updateCalendarEvent(
+          booking,
+          booking.googleIntegration.calendarEventId
+        );
+      }
+      
+      await GoogleIntegrationService.updateSheetRow(booking);
+      
+      await Booking.findByIdAndUpdate(bookingId, {
+        'googleIntegration.syncStatus': 'synced',
+        'googleIntegration.lastSyncedAt': new Date()
+      });
+    } catch (googleError) {
+      console.error('Google sync error:', googleError);
+    }
+
     res.status(200).json({
       success: true,
       booking,
@@ -460,6 +550,30 @@ export const addBookingFeedback = async (req, res) => {
       success: true,
       booking,
       message: 'Feedback added successfully'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// New endpoint to get calendar public URLs
+export const getCalendarUrls = async (req, res) => {
+  try {
+    const studios = await Studio.find({ isActive: true }).select('_id name');
+    
+    const calendarUrls = studios.map(studio => ({
+      studioId: studio._id,
+      studioName: studio.name,
+      calendarUrl: GoogleIntegrationService.getCalendarPublicUrl(studio._id)
+    }));
+
+    res.status(200).json({
+      success: true,
+      calendars: calendarUrls,
+      sheetUrl: GoogleIntegrationService.getSheetPublicUrl()
     });
   } catch (error) {
     res.status(400).json({
