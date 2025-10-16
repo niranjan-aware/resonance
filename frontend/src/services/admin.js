@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const API_BASE_URL ='https://resonance-dkf1.onrender.com/api'
-const API_BASE_URL ='http://localhost:3000/api'
+const API_BASE_URL ='https://resonance-dkf1.onrender.com/api'
+// const API_BASE_URL ='http://localhost:3000/api'
 
 // Create axios instance with auth
 const createAuthAxios = () => {
