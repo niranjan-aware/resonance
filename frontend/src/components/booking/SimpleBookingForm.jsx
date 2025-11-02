@@ -1,4 +1,3 @@
-// frontend/src/components/booking/SimpleBookingForm.jsx
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -14,7 +13,8 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
-  Info
+  Info,
+  XCircle
 } from 'lucide-react'
 
 import Button from '../common/Button'
@@ -30,7 +30,6 @@ const sessionTypes = [
   { value: 'fb-live', label: 'Live Streaming', groupSizes: ['1-5', '6-10', '11-15'] }
 ]
 
-// Generate time slots from 8 AM to 10 PM
 const generateTimeSlots = () => {
   const slots = []
   for (let hour = 8; hour <= 22; hour++) {
@@ -57,6 +56,7 @@ export default function SimpleBookingForm() {
   const [bookingSummary, setBookingSummary] = useState(null)
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
   const [bookedSlots, setBookedSlots] = useState([])
+  const [availabilityChecked, setAvailabilityChecked] = useState(false)
 
   const { register, handleSubmit, watch, formState: { errors }, setValue, reset } = useForm({
     defaultValues: {
@@ -77,7 +77,6 @@ export default function SimpleBookingForm() {
   const watchStartTime = watch('startTime')
   const watchEndTime = watch('endTime')
 
-  // Fetch studios on mount
   useEffect(() => {
     const fetchStudios = async () => {
       try {
@@ -90,7 +89,6 @@ export default function SimpleBookingForm() {
     fetchStudios()
   }, [])
 
-  // Generate recommendations based on session type and group size
   useEffect(() => {
     if (watchSessionType && watchGroupSize && studios.length > 0) {
       const groupNum = parseInt(watchGroupSize.split('-')[1] || watchGroupSize.split('-')[0])
@@ -108,18 +106,17 @@ export default function SimpleBookingForm() {
 
       setRecommendations(suitable)
       
-      // Auto-select recommended studio if available
       if (suitable.length > 0 && !watchStudioId) {
         setValue('studioId', suitable[0]._id)
       }
     }
   }, [watchSessionType, watchGroupSize, studios, watchStudioId, setValue])
 
-  // Fetch available slots when studio and date are selected
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (watchStudioId && watchDate) {
         setIsCheckingAvailability(true)
+        setAvailabilityChecked(false)
         try {
           const response = await bookingAPI.getAvailableSlots(
             watchStudioId,
@@ -128,7 +125,6 @@ export default function SimpleBookingForm() {
           
           const slots = response.slots || []
           
-          // Find all booked time ranges
           const booked = slots
             .filter(slot => slot.isBooked || !slot.available)
             .map(slot => ({
@@ -138,26 +134,17 @@ export default function SimpleBookingForm() {
           
           setBookedSlots(booked)
           
-          // Generate available start times
-          const startTimes = []
-          for (let hour = 8; hour < 22; hour++) {
-            // Check if this hour is available (not within any booked range)
-            const isAvailable = !booked.some(booking => 
-              hour >= booking.start && hour < booking.end
-            )
-            
-            if (isAvailable) {
-              const time = `${hour.toString().padStart(2, '0')}:00`
-              const display = hour < 12 ? `${hour}:00 AM` : 
-                            hour === 12 ? '12:00 PM' : 
-                            `${hour - 12}:00 PM`
-              startTimes.push({ value: time, label: display, hour })
-            }
-          }
+          const available = slots
+            .filter(slot => slot.available && !slot.isBooked)
+            .map(slot => ({
+              value: slot.startTime,
+              label: formatTimeLabel(parseInt(slot.startTime.split(':')[0])),
+              hour: parseInt(slot.startTime.split(':')[0])
+            }))
           
-          setAvailableStartTimes(startTimes)
+          setAvailableStartTimes(available)
+          setAvailabilityChecked(true)
           
-          // Reset start and end time when availability changes
           setValue('startTime', '')
           setValue('endTime', '')
           
@@ -173,21 +160,24 @@ export default function SimpleBookingForm() {
     fetchAvailableSlots()
   }, [watchStudioId, watchDate, setValue])
 
-  // Generate available end times when start time is selected
+  const formatTimeLabel = (hour) => {
+    return hour < 12 ? `${hour}:00 AM` : 
+           hour === 12 ? '12:00 PM' : 
+           `${hour - 12}:00 PM`
+  }
+
   useEffect(() => {
     if (watchStartTime && bookedSlots.length >= 0) {
       const startHour = parseInt(watchStartTime.split(':')[0])
       const endTimes = []
       
-      // Find the next booked slot after start time
-      let nextBookedHour = 22 // Default to end of day
+      let nextBookedHour = 22
       for (const booking of bookedSlots) {
         if (booking.start > startHour && booking.start < nextBookedHour) {
           nextBookedHour = booking.start
         }
       }
       
-      // Generate end times from start+1 to next booked slot or end of day
       for (let hour = startHour + 1; hour <= nextBookedHour && hour <= 22; hour++) {
         const time = `${hour.toString().padStart(2, '0')}:00`
         const display = hour < 12 ? `${hour}:00 AM` : 
@@ -198,11 +188,9 @@ export default function SimpleBookingForm() {
       
       setAvailableEndTimes(endTimes)
       
-      // Auto-select minimum 1 hour if available and end time not set
       if (endTimes.length > 0 && !watchEndTime) {
         setValue('endTime', endTimes[0].value)
       }
-      // If current end time is no longer valid, reset it
       else if (watchEndTime && !endTimes.some(t => t.value === watchEndTime)) {
         setValue('endTime', endTimes.length > 0 ? endTimes[0].value : '')
       }
@@ -219,7 +207,7 @@ export default function SimpleBookingForm() {
 
     const baseRate = studio.pricing?.basePrice || 0
     const subtotal = baseRate * duration
-    const taxes = Math.round(subtotal * 0.18) // 18% GST
+    const taxes = Math.round(subtotal * 0.18)
     const total = subtotal + taxes
 
     return {
@@ -272,8 +260,8 @@ export default function SimpleBookingForm() {
       setAvailableStartTimes([])
       setAvailableEndTimes([])
       setBookedSlots([])
+      setAvailabilityChecked(false)
       
-      // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         window.location.href = '/dashboard'
       }, 2000)
@@ -295,20 +283,55 @@ export default function SimpleBookingForm() {
       setAvailableEndTimes([])
       setBookedSlots([])
       setShowConfirmation(false)
+      setAvailabilityChecked(false)
     }
   }
 
   const selectedSessionType = sessionTypes.find(t => t.value === watchSessionType)
 
-  // Get tomorrow's date as minimum
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const minDate = format(tomorrow, 'yyyy-MM-dd')
 
-  // Get max date (4 months from now)
   const maxDate = new Date()
   maxDate.setMonth(maxDate.getMonth() + 4)
   const maxDateStr = format(maxDate, 'yyyy-MM-dd')
+
+  const formatTimeRange = (start, end) => {
+    const startLabel = timeSlots.find(t => t.hour === start)?.label || `${start}:00`
+    const endLabel = timeSlots.find(t => t.hour === end)?.label || `${end}:00`
+    return `${startLabel} - ${endLabel}`
+  }
+
+  const getAvailableRanges = () => {
+    if (availableStartTimes.length === 0) {
+      return []
+    }
+
+    const ranges = []
+    let currentRange = {
+      start: availableStartTimes[0].hour,
+      end: availableStartTimes[0].hour + 1
+    }
+
+    for (let i = 1; i < availableStartTimes.length; i++) {
+      const currentHour = availableStartTimes[i].hour
+      
+      if (currentHour === currentRange.end) {
+        currentRange.end = currentHour + 1
+      } else {
+        ranges.push({ ...currentRange })
+        currentRange = {
+          start: currentHour,
+          end: currentHour + 1
+        }
+      }
+    }
+
+    ranges.push(currentRange)
+    
+    return ranges
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -321,7 +344,6 @@ export default function SimpleBookingForm() {
             exit={{ opacity: 0, y: -20 }}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 xs:p-6 md:p-8 border border-gray-200 dark:border-gray-700"
           >
-            {/* Header */}
             <div className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 Resonance - Sinhgad Road
@@ -331,7 +353,6 @@ export default function SimpleBookingForm() {
               </p>
             </div>
 
-            {/* Clear Button */}
             <div className="flex justify-end mb-4">
               <Button
                 variant="outline"
@@ -350,7 +371,6 @@ export default function SimpleBookingForm() {
             </div>
 
             <form onSubmit={handleSubmit(onPreview)} className="space-y-5">
-              {/* Session Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Session type
@@ -374,7 +394,6 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* Group Size - Only show if session type is selected */}
               {watchSessionType && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -404,7 +423,6 @@ export default function SimpleBookingForm() {
                 </motion.div>
               )}
 
-              {/* Recommendations Box */}
               {recommendations.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -435,7 +453,6 @@ export default function SimpleBookingForm() {
                 </motion.div>
               )}
 
-              {/* Select a Studio */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Select a Studio
@@ -468,7 +485,6 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* Date - FIXED FOR MOBILE */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Date
@@ -494,7 +510,6 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* Availability Info */}
               {isCheckingAvailability && watchDate && watchStudioId && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -502,28 +517,51 @@ export default function SimpleBookingForm() {
                 </div>
               )}
 
-              {/* Show booked slots info */}
-              {!isCheckingAvailability && bookedSlots.length > 0 && watchDate && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <div className="flex items-start gap-2 text-sm text-red-800 dark:text-red-300">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium mb-1">Already booked time slots:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {bookedSlots.map((slot, idx) => {
-                          const startLabel = timeSlots.find(t => t.hour === slot.start)?.label || `${slot.start}:00`
-                          const endLabel = timeSlots.find(t => t.hour === slot.end)?.label || `${slot.end}:00`
-                          return (
-                            <li key={idx}>{startLabel} - {endLabel}</li>
-                          )
-                        })}
-                      </ul>
+              {availabilityChecked && watchDate && watchStudioId && (
+                <div className="space-y-3">
+                  {bookedSlots.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <div className="flex items-start gap-2 text-sm text-red-800 dark:text-red-300">
+                        <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-medium mb-1">Already Booked Time Slots:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {bookedSlots.map((slot, idx) => (
+                              <li key={idx}>{formatTimeRange(slot.start, slot.end)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {availableStartTimes.length > 0 && (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div className="flex items-start gap-2 text-sm text-green-800 dark:text-green-300">
+                        <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-medium mb-1">Available Time Ranges:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            {getAvailableRanges().map((range, idx) => (
+                              <li key={idx}>{formatTimeRange(range.start, range.end)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {availableStartTimes.length === 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-sm text-red-800 dark:text-red-300">
+                        <AlertCircle className="w-4 h-4" />
+                        <p className="font-medium">No available time slots for this date. Please choose another date.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Start Time */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Start Time <span className="text-gray-500 text-xs">(We operate from 08:00 AM to 10:00 PM)</span>
@@ -531,7 +569,7 @@ export default function SimpleBookingForm() {
                 <select
                   {...register('startTime', { required: 'Start time is required' })}
                   className="w-full px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-                  disabled={!watchDate || !watchStudioId || isCheckingAvailability}
+                  disabled={!watchDate || !watchStudioId || isCheckingAvailability || availableStartTimes.length === 0}
                 >
                   <option value="">
                     {!watchDate ? 'Choose a date first' :
@@ -554,7 +592,6 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* End Time */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   End Time <span className="text-gray-500 text-xs">(Minimum 1 hour session)</span>
@@ -589,7 +626,6 @@ export default function SimpleBookingForm() {
                 )}
               </div>
 
-              {/* Special Requirements */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Special Requirements (Optional)
@@ -602,12 +638,11 @@ export default function SimpleBookingForm() {
                 />
               </div>
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={isLoading || isCheckingAvailability}
+                disabled={isLoading || isCheckingAvailability || availableStartTimes.length === 0}
               >
                 Review Booking
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -622,7 +657,6 @@ export default function SimpleBookingForm() {
             exit={{ opacity: 0, y: -20 }}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 xs:p-6 md:p-8 border border-gray-200 dark:border-gray-700"
           >
-            {/* Header */}
             <div className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 Resonance - Sinhgad Road
@@ -638,7 +672,6 @@ export default function SimpleBookingForm() {
               </h2>
             </div>
 
-            {/* Booking Summary */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Booking Summary
@@ -745,7 +778,6 @@ export default function SimpleBookingForm() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"

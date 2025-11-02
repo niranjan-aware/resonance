@@ -77,7 +77,7 @@ const studioSchema = new mongoose.Schema({
     startTime: {
       type: String,
       required: true,
-      default: '09:00'
+      default: '08:00'
     },
     endTime: {
       type: String,

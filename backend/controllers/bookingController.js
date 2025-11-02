@@ -82,7 +82,6 @@ export const createBooking = async (req, res) => {
       sessionDetails
     } = req.body;
 
-    // Validation
     if (!studioId || !date || !startTime || !endTime || !sessionType) {
       return res.status(400).json({
         success: false,
@@ -99,7 +98,6 @@ export const createBooking = async (req, res) => {
 
     console.log(`📝 Creating booking for user ${req.user.id} at studio ${studioId}`);
 
-    // Use BookingEngine to create booking (with atomic transaction)
     const booking = await BookingEngine.createBooking({
       userId: req.user.id,
       studioId,
@@ -117,7 +115,6 @@ export const createBooking = async (req, res) => {
 
     console.log(`✅ Booking created successfully: ${booking.bookingId}`);
 
-    // Google Integration (non-blocking - runs in background)
     setImmediate(async () => {
       try {
         console.log('🔄 Starting Google Integration...');
@@ -144,11 +141,8 @@ export const createBooking = async (req, res) => {
       }
     });
 
-    // Send notifications (non-blocking)
     setImmediate(async () => {
       try {
-        // await NotificationService.sendBookingCreatedNotification(booking);
-        // await NotificationService.sendAdminNotification(booking, 'new_booking');
       } catch (notifError) {
         console.error('Notification error:', notifError);
       }
@@ -163,7 +157,6 @@ export const createBooking = async (req, res) => {
   } catch (error) {
     console.error('❌ Booking creation error:', error);
     
-    // Handle specific errors
     if (error.message.includes('already booked')) {
       return res.status(409).json({
         success: false,
@@ -226,7 +219,6 @@ export const confirmBooking = async (req, res) => {
       paymentDetails
     );
 
-    // Update Google Calendar event
     setImmediate(async () => {
       try {
         if (booking.googleIntegration?.calendarEventId) {
@@ -247,7 +239,6 @@ export const confirmBooking = async (req, res) => {
       }
     });
 
-    // Send confirmation notification
     setImmediate(async () => {
       try {
         await NotificationService.sendBookingConfirmation(confirmedBooking);
@@ -300,7 +291,6 @@ export const cancelBooking = async (req, res) => {
       .populate('studio', 'name size capacity pricing location images')
       .populate('user', 'name email phone');
 
-    // Update Google services
     setImmediate(async () => {
       try {
         if (booking.googleIntegration?.calendarEventId) {
@@ -321,7 +311,6 @@ export const cancelBooking = async (req, res) => {
       }
     });
 
-    // Send notifications
     setImmediate(async () => {
       try {
         await NotificationService.sendBookingCancellation(populatedBooking);
@@ -447,7 +436,6 @@ export const updateBookingStatus = async (req, res) => {
       });
     }
 
-    // Update Google services
     setImmediate(async () => {
       try {
         if (booking.googleIntegration?.calendarEventId) {
@@ -524,7 +512,6 @@ export const addBookingFeedback = async (req, res) => {
 
     await booking.save();
 
-    // Update studio ratings
     const studio = await Studio.findById(booking.studio);
     const newAverage = ((studio.ratings.average * studio.ratings.count) + rating) / (studio.ratings.count + 1);
     
