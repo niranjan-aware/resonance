@@ -124,7 +124,8 @@ const bookingSchema = new mongoose.Schema({
       default: 0
     },
     paymentDate: Date,
-    refundDate: Date
+    refundDate: Date,
+    failureReason: String
   },
   status: {
     type: String,
@@ -170,6 +171,16 @@ const bookingSchema = new mongoose.Schema({
     },
     refundEligible: Boolean,
     refundProcessed: Boolean
+  },
+  googleIntegration: {
+    calendarEventId: String,
+    syncStatus: {
+      type: String,
+      enum: ['pending', 'synced', 'failed'],
+      default: 'pending'
+    },
+    syncError: String,
+    lastSyncedAt: Date
   }
 }, {
   timestamps: true,
@@ -177,6 +188,7 @@ const bookingSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Virtuals
 bookingSchema.virtual('duration').get(function() {
   const start = new Date(`1970-01-01T${this.timeSlot.startTime}:00`);
   const end = new Date(`1970-01-01T${this.timeSlot.endTime}:00`);
@@ -191,7 +203,7 @@ bookingSchema.virtual('isUpcoming').get(function() {
 });
 
 bookingSchema.virtual('canCancel').get(function() {
-  if (this.status !== 'confirmed') return false;
+  if (this.status !== 'confirmed' && this.status !== 'pending') return false;
   
   const bookingDateTime = new Date(this.date);
   const [hours, minutes] = this.timeSlot.startTime.split(':');
@@ -205,6 +217,7 @@ bookingSchema.virtual('canReschedule').get(function() {
   return this.canCancel && this.payment.status !== 'refunded';
 });
 
+// Pre-save middleware
 bookingSchema.pre('save', function(next) {
   if (this.isNew && !this.bookingId) {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -221,6 +234,16 @@ bookingSchema.pre('save', function(next) {
   next();
 });
 
+// Handle duplicate key errors
+bookingSchema.post('save', function(error, doc, next) {
+  if (error.name === 'MongoServerError' && error.code === 11000) {
+    next(new Error('This time slot is already booked. Please select a different time.'));
+  } else {
+    next(error);
+  }
+});
+
+// Methods
 bookingSchema.methods.calculateRefundAmount = function() {
   const bookingDateTime = new Date(this.date);
   const [hours, minutes] = this.timeSlot.startTime.split(':');
@@ -229,20 +252,39 @@ bookingSchema.methods.calculateRefundAmount = function() {
   const hoursUntilBooking = (bookingDateTime - new Date()) / (1000 * 60 * 60);
   
   if (hoursUntilBooking >= 48) {
-    return this.pricing.totalAmount * 0.9;
+    return this.pricing.totalAmount * 0.9; // 90% refund
   } else if (hoursUntilBooking >= 24) {
-    return this.pricing.totalAmount * 0.7;
+    return this.pricing.totalAmount * 0.7; // 70% refund
   } else if (hoursUntilBooking >= 6) {
-    return this.pricing.totalAmount * 0.5;
+    return this.pricing.totalAmount * 0.5; // 50% refund
   }
   
-  return 0;
+  return 0; // No refund
 };
 
+// Indexes
 bookingSchema.index({ user: 1, date: -1 });
 bookingSchema.index({ studio: 1, date: 1, 'timeSlot.startTime': 1 });
 bookingSchema.index({ bookingId: 1 });
 bookingSchema.index({ status: 1, date: 1 });
 bookingSchema.index({ createdAt: -1 });
+
+// CRITICAL: Unique compound index to prevent duplicate bookings
+bookingSchema.index(
+  { 
+    studio: 1, 
+    date: 1, 
+    'timeSlot.startTime': 1,
+    'timeSlot.endTime': 1,
+    status: 1 
+  },
+  { 
+    unique: true,
+    partialFilterExpression: { 
+      status: { $in: ['pending', 'confirmed', 'checked-in'] } 
+    },
+    name: 'unique_active_booking_slot'
+  }
+);
 
 export default mongoose.model('Booking', bookingSchema);

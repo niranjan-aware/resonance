@@ -34,27 +34,52 @@ export class BookingEngine {
     });
   }
 
-  static async checkAvailability(studioId, date, startTime, endTime) {
+  /**
+   * Check availability with atomic query
+   * @param {string} studioId - Studio ID
+   * @param {string} date - Date in ISO format
+   * @param {string} startTime - Start time in HH:MM format
+   * @param {string} endTime - End time in HH:MM format
+   * @param {object} session - MongoDB session for transactions
+   * @returns {object} - Availability status and studio
+   */
+  static async checkAvailability(studioId, date, startTime, endTime, session = null) {
     try {
-      const studio = await Studio.findById(studioId);
+      // Find studio with session if provided
+      const studioQuery = Studio.findById(studioId);
+      if (session) {
+        studioQuery.session(session);
+      }
+      
+      const studio = await studioQuery;
+      
       if (!studio || !studio.isActive) {
         throw new Error('Studio not found or not available');
       }
 
-      const existingBookings = await Booking.find({
+      // Check for overlapping bookings atomically
+      const conflictQuery = {
         studio: studioId,
         date: new Date(date),
         status: { $in: ['confirmed', 'checked-in', 'pending'] },
         $or: [
           {
+            // New booking overlaps with existing booking
             'timeSlot.startTime': { $lt: endTime },
             'timeSlot.endTime': { $gt: startTime }
           }
         ]
-      });
+      };
 
-      if (existingBookings.length > 0) {
-        throw new Error('Time slot is already booked');
+      const countQuery = Booking.countDocuments(conflictQuery);
+      if (session) {
+        countQuery.session(session);
+      }
+      
+      const conflictingBookings = await countQuery;
+
+      if (conflictingBookings > 0) {
+        throw new Error('This time slot is already booked. Please select a different time.');
       }
 
       return { available: true, studio };
@@ -63,200 +88,270 @@ export class BookingEngine {
     }
   }
 
+  /**
+   * Create booking with MongoDB transaction for atomicity
+   * @param {object} bookingData - Booking details
+   * @returns {object} - Created booking
+   */
   static async createBooking(bookingData) {
     const session = await mongoose.startSession();
-    session.startTransaction();
-
+    let createdBooking = null;
+    
     try {
-      const { userId, studioId, date, startTime, endTime, sessionType, sessionDetails } = bookingData;
+      // Start transaction with retry logic for write conflicts
+      await session.withTransaction(async () => {
+        const { userId, studioId, date, startTime, endTime, sessionType, sessionDetails } = bookingData;
 
-      const availability = await this.checkAvailability(studioId, date, startTime, endTime);
-      const studio = availability.studio;
+        console.log('🔒 Transaction started - Checking availability...');
 
-      const lockKey = `booking_lock_${studioId}_${date}_${startTime}`;
-      const existingLock = await this.checkBookingLock(lockKey);
-      
-      if (existingLock) {
-        throw new Error('Another booking is being processed for this time slot');
-      }
+        // Check availability within transaction (with session lock)
+        const availability = await this.checkAvailability(studioId, date, startTime, endTime, session);
+        const studio = availability.studio;
 
-      await this.createBookingLock(lockKey, userId);
+        console.log('✅ Slot available - Creating booking...');
 
-      const baseAmount = studio.calculatePrice(date, startTime, endTime, sessionDetails.equipment || []);
-      const taxes = Math.round(baseAmount * 0.18);
+        // Calculate pricing
+        const baseAmount = studio.calculatePrice(date, startTime, endTime, sessionDetails.equipment || []);
+        const taxes = Math.round(baseAmount * 0.18);
 
-      const booking = new Booking({
-        user: userId,
-        studio: studioId,
-        date: new Date(date),
-        timeSlot: { startTime, endTime },
-        sessionType,
-        sessionDetails,
-        pricing: {
-          baseAmount,
-          equipmentCost: 0,
-          taxes,
-          totalAmount: baseAmount + taxes
-        },
-        status: 'pending'
+        // Generate unique booking ID
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+        const generatedBookingId = `RES-${timestamp}-${random}`;
+
+        // Create booking document
+        const bookingDoc = new Booking({
+          bookingId: generatedBookingId,
+          user: userId,
+          studio: studioId,
+          date: new Date(date),
+          timeSlot: { startTime, endTime },
+          sessionType,
+          sessionDetails,
+          pricing: {
+            baseAmount,
+            equipmentCost: 0,
+            taxes,
+            totalAmount: baseAmount + taxes
+          },
+          status: 'pending',
+          metadata: bookingData.metadata || {}
+        });
+
+        // Save with session to ensure atomicity
+        const savedBookings = await bookingDoc.save({ session });
+        createdBooking = savedBookings;
+
+        console.log('✅ Booking created - Updating user and studio...');
+
+        // Update user and studio in same transaction
+        await Promise.all([
+          User.findByIdAndUpdate(
+            userId,
+            { 
+              $push: { 
+                bookingHistory: { 
+                  booking: bookingDoc._id, 
+                  status: 'pending', 
+                  bookedAt: new Date() 
+                } 
+              } 
+            },
+            { session }
+          ),
+          Studio.findByIdAndUpdate(
+            studioId,
+            { $inc: { 'bookingStats.totalBookings': 1 } },
+            { session }
+          )
+        ]);
+
+        console.log('✅ Transaction completed successfully');
+
+      }, {
+        readPreference: 'primary',
+        readConcern: { level: 'majority' },
+        writeConcern: { w: 'majority' },
+        maxCommitTimeMS: 10000
       });
 
-      await booking.save({ session });
-
-      await User.findByIdAndUpdate(
-        userId,
-        { 
-          $push: { 
-            bookingHistory: { 
-              booking: booking._id, 
-              status: 'pending', 
-              bookedAt: new Date() 
-            } 
-          } 
-        },
-        { session }
-      );
-
-      await studio.updateOne(
-        { $inc: { 'bookingStats.totalBookings': 1 } },
-        { session }
-      );
-
-      await session.commitTransaction();
-
-      await this.releaseBookingLock(lockKey);
-
-      return await Booking.findById(booking._id)
+      // After successful transaction, fetch populated booking
+      const booking = await Booking.findById(createdBooking._id)
         .populate('user', 'name email phone')
-        .populate('studio', 'name size images');
+        .populate('studio', 'name size images pricing location capacity');
+
+      return booking;
 
     } catch (error) {
-      await session.abortTransaction();
+      console.error('❌ Transaction failed:', error.message);
+      
+      // Handle duplicate key errors
+      if (error.code === 11000 || error.message.includes('already booked')) {
+        throw new Error('This time slot is already booked. Please select a different time.');
+      }
+      
+      // Handle transaction errors
+      if (error.message.includes('Transaction')) {
+        throw new Error('Booking failed due to high traffic. Please try again.');
+      }
+      
       throw error;
     } finally {
-      session.endSession();
+      await session.endSession();
     }
   }
 
+  /**
+   * Confirm booking with transaction
+   */
   static async confirmBooking(bookingId, paymentDetails = null) {
     const session = await mongoose.startSession();
-    session.startTransaction();
-
+    
     try {
-      const booking = await Booking.findById(bookingId).session(session);
-      
-      if (!booking) {
-        throw new Error('Booking not found');
-      }
+      let updatedBooking;
 
-      if (booking.status !== 'pending') {
-        throw new Error('Booking cannot be confirmed');
-      }
+      await session.withTransaction(async () => {
+        const booking = await Booking.findById(bookingId).session(session);
+        
+        if (!booking) {
+          throw new Error('Booking not found');
+        }
 
-      const updateData = { status: 'confirmed' };
-      
-      if (paymentDetails) {
-        updateData.payment = {
-          ...booking.payment,
-          ...paymentDetails,
-          status: 'completed',
-          paymentDate: new Date()
-        };
-      }
+        if (booking.status !== 'pending') {
+          throw new Error(`Booking cannot be confirmed. Current status: ${booking.status}`);
+        }
 
-      const confirmedBooking = await Booking.findByIdAndUpdate(
-        bookingId,
-        updateData,
-        { new: true, session }
-      ).populate('user studio');
+        // Update booking status
+        booking.status = 'confirmed';
+        
+        if (paymentDetails) {
+          booking.payment = {
+            ...booking.payment.toObject(),
+            ...paymentDetails,
+            status: 'completed',
+            paymentDate: new Date()
+          };
+        }
 
-      await session.commitTransaction();
+        await booking.save({ session });
+        updatedBooking = booking;
+      });
 
-      return confirmedBooking;
+      // Return populated booking
+      return await Booking.findById(updatedBooking._id)
+        .populate('user', 'name email phone')
+        .populate('studio', 'name size capacity pricing location images');
+
     } catch (error) {
-      await session.abortTransaction();
       throw error;
     } finally {
-      session.endSession();
+      await session.endSession();
     }
   }
 
+  /**
+   * Cancel booking with transaction
+   */
   static async cancelBooking(bookingId, userId, reason = '') {
     const session = await mongoose.startSession();
-    session.startTransaction();
 
     try {
-      const booking = await Booking.findById(bookingId).session(session);
-      
-      if (!booking) {
-        throw new Error('Booking not found');
-      }
+      let cancelledBooking;
+      let refundAmount = 0;
 
-      if (booking.user.toString() !== userId && booking.status !== 'pending') {
-        throw new Error('Cannot cancel this booking');
-      }
+      await session.withTransaction(async () => {
+        const booking = await Booking.findById(bookingId).session(session);
+        
+        if (!booking) {
+          throw new Error('Booking not found');
+        }
 
-      if (!booking.canCancel) {
-        throw new Error('Booking cannot be cancelled (less than 24 hours remaining)');
-      }
+        if (booking.user.toString() !== userId) {
+          throw new Error('Not authorized to cancel this booking');
+        }
 
-      const refundAmount = booking.calculateRefundAmount();
+        if (booking.status === 'cancelled') {
+          throw new Error('Booking is already cancelled');
+        }
 
-      const cancelledBooking = await Booking.findByIdAndUpdate(
-        bookingId,
-        {
-          status: 'cancelled',
-          cancellation: {
-            reason,
-            cancelledAt: new Date(),
-            cancelledBy: userId,
-            refundEligible: refundAmount > 0,
-            refundProcessed: false
-          },
-          'payment.refundAmount': refundAmount
-        },
-        { new: true, session }
-      );
+        if (booking.status === 'completed') {
+          throw new Error('Cannot cancel a completed booking');
+        }
 
-      await session.commitTransaction();
+        // Calculate refund only for confirmed bookings
+        if (booking.status === 'confirmed' && !booking.canCancel) {
+          throw new Error('Booking cannot be cancelled (less than 24 hours remaining)');
+        }
+
+        refundAmount = booking.calculateRefundAmount();
+
+        // Update booking
+        booking.status = 'cancelled';
+        booking.cancellation = {
+          reason,
+          cancelledAt: new Date(),
+          cancelledBy: userId,
+          refundEligible: refundAmount > 0,
+          refundProcessed: false
+        };
+        booking.payment.refundAmount = refundAmount;
+
+        await booking.save({ session });
+        cancelledBooking = booking;
+
+        // Update studio stats
+        await Studio.findByIdAndUpdate(
+          booking.studio,
+          { $inc: { 'bookingStats.totalBookings': -1 } },
+          { session }
+        );
+      });
 
       return { booking: cancelledBooking, refundAmount };
     } catch (error) {
-      await session.abortTransaction();
       throw error;
     } finally {
-      session.endSession();
+      await session.endSession();
     }
   }
 
+  /**
+   * Get available slots for a studio on a specific date
+   */
   static async getAvailableSlots(studioId, date) {
     try {
       const studio = await Studio.findById(studioId);
-      if (!studio) {
-        throw new Error('Studio not found');
+      if (!studio || !studio.isActive) {
+        throw new Error('Studio not found or not available');
       }
 
       const requestedDate = new Date(date);
       const dayOfWeek = requestedDate.getDay();
 
+      // Check if studio is open on this day
       if (!studio.availability.workingDays.includes(dayOfWeek)) {
         return [];
       }
 
+      // Get all existing bookings for this date (use lean for performance)
       const existingBookings = await Booking.find({
         studio: studioId,
         date: requestedDate,
         status: { $in: ['confirmed', 'checked-in', 'pending'] }
-      });
+      })
+      .select('timeSlot')
+      .lean();
 
       const availableSlots = [];
       const studioStartHour = parseInt(studio.availability.startTime.split(':')[0]);
       const studioEndHour = parseInt(studio.availability.endTime.split(':')[0]);
 
+      // Generate hourly slots
       for (let hour = studioStartHour; hour < studioEndHour; hour++) {
         const slotStart = `${hour.toString().padStart(2, '0')}:00`;
         const slotEnd = `${(hour + 1).toString().padStart(2, '0')}:00`;
 
+        // Check if slot overlaps with any existing booking
         const isBooked = existingBookings.some(booking => {
           return !(
             slotEnd <= booking.timeSlot.startTime || 
@@ -265,7 +360,6 @@ export class BookingEngine {
         });
 
         const isPeakHour = this.isPeakHour(slotStart, slotEnd);
-
         const slotPrice = studio.calculatePrice(date, slotStart, slotEnd);
 
         availableSlots.push({
@@ -284,10 +378,13 @@ export class BookingEngine {
     }
   }
 
+  /**
+   * Get available time ranges (continuous slots)
+   */
   static getAvailableTimeRanges(slots) {
-    const availableSlots = slots.filter(s => s.available).sort((a, b) => {
-      return a.startTime.localeCompare(b.startTime);
-    });
+    const availableSlots = slots
+      .filter(s => s.available)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
     if (availableSlots.length === 0) return [];
 
@@ -299,8 +396,10 @@ export class BookingEngine {
 
     for (let i = 1; i < availableSlots.length; i++) {
       if (availableSlots[i].startTime === currentRange.end) {
+        // Extend current range
         currentRange.end = availableSlots[i].endTime;
       } else {
+        // Save current range and start new one
         ranges.push({ ...currentRange });
         currentRange = {
           start: availableSlots[i].startTime,
@@ -309,26 +408,9 @@ export class BookingEngine {
       }
     }
 
+    // Add last range
     ranges.push(currentRange);
 
     return ranges.map(r => `${r.start} - ${r.end}`);
-  }
-
-  static async createBookingLock(key, userId, ttl = 300) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(true), 100);
-    });
-  }
-
-  static async checkBookingLock(key) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(false), 50);
-    });
-  }
-
-  static async releaseBookingLock(key) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(true), 10);
-    });
   }
 }
